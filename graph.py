@@ -8,45 +8,54 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtGui import QBrush, QPen
+from PyQt5.QtGui import QBrush, QPen, QFont
 from PyQt5.QtWidgets import QGraphicsScene, QGraphicsRectItem, QGraphicsEllipseItem, QGraphicsItem, \
-    QGraphicsSceneDragDropEvent, QGraphicsSceneHoverEvent
-from PyQt5.QtCore import Qt, QPointF
+    QGraphicsSceneDragDropEvent, QGraphicsSceneHoverEvent, QGraphicsTextItem
+from PyQt5.QtCore import Qt, QPointF, QPoint
 import random
+import numpy as np
+
+
+def get_coord(point):
+    return np.array([point.x(), point.y()])
 
 
 class Field(QGraphicsEllipseItem):
     def __init__(self, x, y, w, h, field, parent):
-        super().__init__(x - field/2, y - field/2, w + field, h + field, parent=parent)
+        self.value = field
+        super().__init__(x - field / 2, y - field / 2, w + field, h + field, parent=parent)
         self.parent = parent
 
     def get_parent(self):
         return self.parent
 
-class Node(QGraphicsEllipseItem):
-    def __init__(self, x, y, w, h, field):
-        super().__init__(x, y, w, h)
-        self.field = Field(x, y, w, h, field=field, parent=self)
 
+class Node(QGraphicsEllipseItem):
+    def __init__(self, x, y, w, h, text):
+        super().__init__(x, y, w, h)
+        self.font = QFont("Times", 20, QFont.Bold)
+        self.text = QGraphicsTextItem(text, parent=self)
+        self.text.setFont(self.font)
+        self.text.setPos(x, y)
 
     def mousePressEvent(self, event):
         print('Press')
         super(Node, self).mousePressEvent(event)
 
-
-
     def mouseReleaseEvent(self, event):
         print('Release')
-        # print(list(set(self.field.collidingItems()).difference({self})))
-        # print(list(map(type, self.field.collidingItems())))
-        colliding = [x for x in self.field.collidingItems() if not isinstance(x, Node)]
-        colliding_points = list(map(Field.get_parent, colliding))
-        colliding_points_pos = list(map(Node.get_pos, colliding_points))
-        print(colliding_points_pos)
+        # colliding = [x for x in self.field.collidingItems() if not isinstance(x, Node)]
+        # colliding_points = list(map(Field.get_parent, colliding))
+        # colliding_points_pos = list(map(Node.get_pos, colliding_points))
+        # print(colliding_points_pos)
+        # print(list(map(Node.get_field, colliding_points)))
         super(Node, self).mouseReleaseEvent(event)
 
     def get_pos(self):
         return self.x(), self.y()
+
+    # def get_field(self):
+    #     return self.field.value
 
 
 class Ui_MainWindow(object):
@@ -62,7 +71,10 @@ class Ui_MainWindow(object):
         self.graphicsView = QtWidgets.QGraphicsView(self.centralwidget)
         self.graphicsView.setGeometry(QtCore.QRect(0, 0, 800, 540))
         self.graphicsView.setObjectName("graphicsView")
-        self.graphicsView.setSceneRect(QtCore.QRectF(0.0, 0.0, 798.0, 538.0))
+
+        self.width = 798.0
+        self.height = 538.0
+        self.graphicsView.setSceneRect(QtCore.QRectF(0.0, 0.0, self.width, self.height))
 
         self.scene = QGraphicsScene()
         self.graphicsView.setScene(self.scene)
@@ -93,7 +105,7 @@ class Ui_MainWindow(object):
         self.Clear_btn.setText(_translate("MainWindow", "Clear"))
 
     def add_functions(self):
-        self.Draw_btn.clicked.connect(lambda: self.draw_node())
+        self.Draw_btn.clicked.connect(lambda: self.draw_nodes())
         self.Clear_btn.clicked.connect(lambda: self.clear())
 
     def draw_rect(self):
@@ -121,15 +133,77 @@ class Ui_MainWindow(object):
             self.draw_ellipse(x, y)
             print(list(map(QGraphicsItem.x, self.scene.items())))
 
-    def clear(self):
-        self.scene.clear()
-
-    def draw_node(self):
-        node = Node(0, 0, 50, 50, 50)
-        node.setPos(50, 50)
+    def draw_node(self, x, y, text):
+        node = Node(0, 0, 50, 50, text)
+        node.setPos(x, y)
         node.setBrush(QBrush(Qt.red))
         node.setFlag(QGraphicsItem.ItemIsMovable)
         self.scene.addItem(node)
+
+    def draw_nodes(self):
+        self.clear()
+        count = 0
+        for i in range(self.Count_spinBox.value()):
+            x = random.randint(0, 748)
+            y = random.randint(0, 488)
+            self.draw_node(x, y, str(count))
+            count += 1
+
+        # координаты
+        # print(list(map(get_coord, self.scene.items())))
+
+        # растояние
+        # print(self.items_distance())
+
+        # items_rep
+        print(self.items_repr())
+
+        # items_spring
+        print(self.items_spring())
+
+    def clear(self):
+        self.scene.clear()
+
+    def items_distance(self):
+        nodes = [x for x in self.scene.items() if isinstance(x, Node)]
+        points = list(map(get_coord, nodes))
+        length = len(nodes)
+        distance = np.ones((length, length))
+        for i in range(length):
+            for j in range(length):
+                distance[i][j] = np.linalg.norm(points[i] - points[j])
+        return distance
+
+    # def unit_vectors(self):
+    #     points = list(map(get_coord, self.scene.items()))
+    #     length = len(self.scene.items())
+    #     distance = self.items_distance()
+    #     units = np.ones((length, length))
+    #     for i in range(length):
+    #         for j in range(length):
+    #             units[i][j] = (points[i] - points[j])/distance[i][j]
+    #     return units
+
+    def items_repr(self):
+        distance = self.items_distance()
+        repr = np.ones(distance.shape)
+        l = np.sqrt(self.width * self.height / len(self.scene.items()))
+        for i in range(distance.shape[0]):
+            for j in range(distance.shape[0]):
+                repr[i][j] = (distance[i][j] ** 2) / l
+        return repr
+
+    def items_spring(self):
+        distance = self.items_distance()
+        spring = np.ones(distance.shape)
+        l = np.sqrt(self.width * self.height / len(self.scene.items()))
+        for i in range(distance.shape[0]):
+            for j in range(distance.shape[0]):
+                if distance[i][j] == 0:
+                    spring[i][j] = 0.
+                else:
+                    spring[i][j] = (l**2)/distance[i][j]
+        return spring
 
 
 if __name__ == "__main__":
