@@ -156,10 +156,17 @@ class Ui_MainWindow(object):
         # print(self.items_distance())
 
         # items_rep
-        print(self.items_repr())
+        # print('repr')
+        # print(self.items_repr())
 
         # items_spring
-        print(self.items_spring())
+        # print('spring')
+        # print(self.items_spring())
+
+        # unit_vectors
+        # print(self.unit_vectors())
+
+        print(self.move_nodes())
 
     def clear(self):
         self.scene.clear()
@@ -174,15 +181,20 @@ class Ui_MainWindow(object):
                 distance[i][j] = np.linalg.norm(points[i] - points[j])
         return distance
 
-    # def unit_vectors(self):
-    #     points = list(map(get_coord, self.scene.items()))
-    #     length = len(self.scene.items())
-    #     distance = self.items_distance()
-    #     units = np.ones((length, length))
-    #     for i in range(length):
-    #         for j in range(length):
-    #             units[i][j] = (points[i] - points[j])/distance[i][j]
-    #     return units
+    def unit_vectors(self):
+        nodes = [x for x in self.scene.items() if isinstance(x, Node)]
+        points = list(map(get_coord, nodes))
+        length = len(nodes)
+        distance = self.items_distance()
+        units = np.ones((length, length, 2))
+        for i in range(length):
+            for j in range(length):
+                # units[i][j] = (points[i] - points[j])/distance[i][j]
+                if distance[i][j] == 0:
+                    units[i][j] = [0., 0.]
+                else:
+                    units[i][j] = (points[i] - points[j])/distance[i][j]
+        return units
 
     def items_repr(self):
         distance = self.items_distance()
@@ -204,6 +216,25 @@ class Ui_MainWindow(object):
                 else:
                     spring[i][j] = (l**2)/distance[i][j]
         return spring
+
+    def move_nodes(self):
+        units = self.unit_vectors()
+        power = np.absolute(self.items_repr() - self.items_spring())
+        coords = np.ones(units.shape)
+        for i in range(coords.shape[0]):
+            for j in range(coords.shape[0]):
+                coords[i][j] = units[i][j] * power[i][j]
+
+        # self.clear()
+        # count = 0
+        # for i in range(self.Count_spinBox.value()):
+        #     x = random.randint(0, 748)
+        #     y = random.randint(0, 488)
+        #     self.draw_node(x, y, str(count))
+        #     count += 1
+
+        return coords
+
 
 
 if __name__ == "__main__":
