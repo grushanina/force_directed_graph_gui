@@ -44,18 +44,11 @@ class Node(QGraphicsEllipseItem):
 
     def mouseReleaseEvent(self, event):
         print('Release')
-        # colliding = [x for x in self.field.collidingItems() if not isinstance(x, Node)]
-        # colliding_points = list(map(Field.get_parent, colliding))
-        # colliding_points_pos = list(map(Node.get_pos, colliding_points))
-        # print(colliding_points_pos)
-        # print(list(map(Node.get_field, colliding_points)))
         super(Node, self).mouseReleaseEvent(event)
 
     def get_pos(self):
         return self.x(), self.y()
 
-    # def get_field(self):
-    #     return self.field.value
 
 
 class Ui_MainWindow(object):
@@ -107,31 +100,7 @@ class Ui_MainWindow(object):
     def add_functions(self):
         self.Draw_btn.clicked.connect(lambda: self.draw_nodes())
         self.Clear_btn.clicked.connect(lambda: self.clear())
-
-    def draw_rect(self):
-        rect = QGraphicsRectItem(0, 0, 200, 50)
-        rect.setPos(50, 20)
-        brush = QBrush(Qt.red)
-        rect.setBrush(brush)
-        pen = QPen(Qt.cyan)
-        pen.setWidth(10)
-        rect.setPen(pen)
-        self.scene.addItem(rect)
-        print(self.scene.items()[0].x())
-
-    def draw_ellipse(self, x, y):
-        ellipse = QGraphicsEllipseItem(0, 0, 50, 50)
-        ellipse.setPos(x, y)
-        ellipse.setBrush(QBrush(Qt.red))
-        ellipse.setFlag(QGraphicsItem.ItemIsMovable)
-        self.scene.addItem(ellipse)
-
-    def draw_ellipses(self):
-        for i in range(self.Count_spinBox.value()):
-            x = random.randint(0, 748)
-            y = random.randint(0, 488)
-            self.draw_ellipse(x, y)
-            print(list(map(QGraphicsItem.x, self.scene.items())))
+        self.Shake_btn.clicked.connect(lambda: self.move_nodes())
 
     def draw_node(self, x, y, text):
         node = Node(0, 0, 50, 50, text)
@@ -147,6 +116,7 @@ class Ui_MainWindow(object):
             x = random.randint(0, 748)
             y = random.randint(0, 488)
             self.draw_node(x, y, str(count))
+            print('node: ' + str(count) + ' x: ' + str(x) + ' y : ' + str(y))
             count += 1
 
         # координаты
@@ -164,9 +134,11 @@ class Ui_MainWindow(object):
         # print(self.items_spring())
 
         # unit_vectors
+        # print('unit_vectors')
         # print(self.unit_vectors())
 
-        print(self.move_nodes())
+        # print('power')
+        # print(self.move_nodes())
 
     def clear(self):
         self.scene.clear()
@@ -189,11 +161,10 @@ class Ui_MainWindow(object):
         units = np.ones((length, length, 2))
         for i in range(length):
             for j in range(length):
-                # units[i][j] = (points[i] - points[j])/distance[i][j]
                 if distance[i][j] == 0:
                     units[i][j] = [0., 0.]
                 else:
-                    units[i][j] = (points[i] - points[j])/distance[i][j]
+                    units[i][j] = (points[i] - points[j]) / distance[i][j]
         return units
 
     def items_repr(self):
@@ -214,27 +185,48 @@ class Ui_MainWindow(object):
                 if distance[i][j] == 0:
                     spring[i][j] = 0.
                 else:
-                    spring[i][j] = (l**2)/distance[i][j]
+                    spring[i][j] = (l ** 2) / distance[i][j]
         return spring
 
+    def nodes_coords(self):
+        nodes = [x for x in self.scene.items() if isinstance(x, Node)]
+        points = list(map(get_coord, nodes))
+        return points
+
     def move_nodes(self):
+        points = self.nodes_coords()
         units = self.unit_vectors()
-        power = np.absolute(self.items_repr() - self.items_spring())
-        coords = np.ones(units.shape)
-        for i in range(coords.shape[0]):
-            for j in range(coords.shape[0]):
-                coords[i][j] = units[i][j] * power[i][j]
+        power = self.items_repr() - self.items_spring()
+        vectors = np.ones(units.shape)
 
-        # self.clear()
-        # count = 0
-        # for i in range(self.Count_spinBox.value()):
-        #     x = random.randint(0, 748)
-        #     y = random.randint(0, 488)
-        #     self.draw_node(x, y, str(count))
-        #     count += 1
+        for i in range(units.shape[0]):
+            for j in range(units.shape[0]):
+                vectors[i][j] = power[i][j] * units[i][j]
+        vectors = np.sum(vectors, axis=0)
 
-        return coords
-
+        self.clear()
+        count = 0
+        for i in range(len(points)):
+            print('point ' + str(count))
+            print('old x y')
+            print(points[i])
+            print('vectors')
+            print(vectors[i])
+            x = points[i][0] + vectors[i][0]
+            y = points[i][1] + vectors[i][1]
+            if x < 0:
+                x = 0
+            if y < 0:
+                 y = 0
+            if x > 748:
+                x = 748
+            if y > 488:
+                y = 488
+            print('new x y')
+            print((x, y))
+            self.draw_node(x, y, str(count))
+            count += 1
+        #return vectors
 
 
 if __name__ == "__main__":
