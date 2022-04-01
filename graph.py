@@ -170,7 +170,9 @@ class Ui_MainWindow(object):
     def items_repr(self):
         distance = self.items_distance()
         repr = np.ones(distance.shape)
-        l = np.sqrt(self.width * self.height / len(self.scene.items()))
+        l = np.sqrt(self.width * self.height / len(self.nodes_coords()))
+        # print('l_repr')
+        # print(l)
         for i in range(distance.shape[0]):
             for j in range(distance.shape[0]):
                 repr[i][j] = (distance[i][j] ** 2) / l
@@ -179,7 +181,9 @@ class Ui_MainWindow(object):
     def items_spring(self):
         distance = self.items_distance()
         spring = np.ones(distance.shape)
-        l = np.sqrt(self.width * self.height / len(self.scene.items()))
+        l = np.sqrt(self.width * self.height / len(self.nodes_coords()))
+        # print('l_spring')
+        # print(l)
         for i in range(distance.shape[0]):
             for j in range(distance.shape[0]):
                 if distance[i][j] == 0:
@@ -207,11 +211,11 @@ class Ui_MainWindow(object):
         self.clear()
         count = 0
         for i in range(len(points)):
-            print('point ' + str(count))
-            print('old x y')
-            print(points[i])
-            print('vectors')
-            print(vectors[i])
+            # print('point ' + str(count))
+            # print('old x y')
+            # print(points[i])
+            # print('vectors')
+            # print(vectors[i])
             x = points[i][0] + vectors[i][0]
             y = points[i][1] + vectors[i][1]
             if x < 0:
@@ -222,8 +226,8 @@ class Ui_MainWindow(object):
                 x = 748
             if y > 488:
                 y = 488
-            print('new x y')
-            print((x, y))
+            # print('new x y')
+            # print((x, y))
             self.draw_node(x, y, str(count))
             count += 1
         #return vectors
