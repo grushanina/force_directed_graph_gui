@@ -167,7 +167,7 @@ class Ui_MainWindow(object):
                     units[i][j] = (points[i] - points[j]) / distance[i][j]
         return units
 
-    def items_repr(self):
+    def items_spring(self):
         distance = self.items_distance()
         repr = np.ones(distance.shape)
         l = np.sqrt(self.width * self.height / len(self.nodes_coords()))
@@ -178,7 +178,7 @@ class Ui_MainWindow(object):
                 repr[i][j] = (distance[i][j] ** 2) / l
         return repr
 
-    def items_spring(self):
+    def items_repr(self):
         distance = self.items_distance()
         spring = np.ones(distance.shape)
         l = np.sqrt(self.width * self.height / len(self.nodes_coords()))
