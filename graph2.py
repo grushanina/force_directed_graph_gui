@@ -7,13 +7,16 @@
 # WARNING! All changes made in this file will be lost!
 
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QBrush
-from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsScene, QGraphicsTextItem, QGraphicsItem
-from Node import *
 import random
+
 import numpy as np
+from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtTest
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QBrush, QPen
+from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsLineItem
+
+from Node import *
 
 
 def get_coord(point):
@@ -49,6 +52,11 @@ class Ui_MainWindow(object):
         self.Count_spinBox.setMinimum(1)
         self.Count_spinBox.setMaximum(50)
         self.Count_spinBox.setObjectName("Count_spinBox")
+        self.Speed_spinBox = QtWidgets.QSpinBox(self.centralwidget)
+        self.Speed_spinBox.setGeometry(QtCore.QRect(410, 540, 50, 50))
+        self.Speed_spinBox.setMinimum(1)
+        self.Speed_spinBox.setMaximum(50)
+        self.Speed_spinBox.setObjectName("Speed_spinBox")
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
@@ -64,8 +72,9 @@ class Ui_MainWindow(object):
 
     def add_functions(self):
         self.Draw_btn.clicked.connect(lambda: self.draw_random_nodes())
-        self.Shake_btn.clicked.connect(lambda: self.forces(1))
-        self.Clear_btn.clicked.connect(lambda: self.test())
+        # self.Draw_btn.clicked.connect(lambda: self.draw_edge(0, 0, 100, 100))
+        self.Shake_btn.clicked.connect(lambda: self.move_nodes())
+        self.Clear_btn.clicked.connect(lambda: self.one_step())
 
     def get_nodes(self):
         nodes = [item for item in self.scene.items() if isinstance(item, Node)]
@@ -77,6 +86,13 @@ class Ui_MainWindow(object):
         coord = list(map(get_coord, nodes))
         return np.array(coord)
 
+    def draw_edge(self, x1, y1, x2, y2):
+        line = QGraphicsLineItem(x1, y1, x2, y2)
+        pen = QPen(Qt.blue)
+        pen.setWidth(3)
+        line.setPen(pen)
+        self.scene.addItem(line)
+
     def draw_node(self, x, y, text):
         node = Node(0, 0, 50, 50, text)
         node.setPos(x, y)
@@ -87,6 +103,12 @@ class Ui_MainWindow(object):
     def draw_nodes(self, coord_array):
         self.scene.clear()
         count = 0
+
+        # for i in range(len(coord_array)):
+        #     for j in range(i, len(coord_array)):
+        #         self.draw_edge(coord_array[i][0] + 30, coord_array[i][1] + 30,
+        #                        coord_array[j][0] + 30, coord_array[j][1] + 30)
+
         for coord in coord_array:
             self.draw_node(coord[0], coord[1], str(count))
             count += 1
@@ -94,8 +116,8 @@ class Ui_MainWindow(object):
     def draw_random_nodes(self):
         coord_array = []
         for i in range(self.Count_spinBox.value()):
-            x = random.randint(0, int(self.width - 30))
-            y = random.randint(0, int(self.height - 30))
+            x = random.randint(0, int(self.width - 50))
+            y = random.randint(0, int(self.height - 50))
             coord_array.append([x, y])
         self.draw_nodes(np.array(coord_array))
         print(np.array(coord_array))
@@ -146,17 +168,41 @@ class Ui_MainWindow(object):
                     units[i][j] = (points[i] - points[j]) / distance[i][j]
         return units
 
-    def test(self):
+    def one_step(self):
         forces = np.sum(self.forces(1), axis=0)
-        forces_sign = forces/np.absolute(forces)
-        vectors = np.sum(self.unit_vectors(), axis=0)
+        forces_sign = forces / np.absolute(forces)
+        vectors = np.sum(self.unit_vectors(), axis=0) / len(self.get_nodes())
+
         old_coord = self.get_nodes_coord()
         new_coord = np.ones(old_coord.shape)
+
         for i in range(old_coord.shape[0]):
             new_coord[i] = old_coord[i] + (forces_sign[i] * vectors[i])
+
+            if new_coord[i][0] <= 0 or new_coord[i][0] >= self.width - 50:
+                new_coord[i][0] = old_coord[i][0]
+            if new_coord[i][1] <= 0 or new_coord[i][1] >= self.height - 50:
+                new_coord[i][1] = old_coord[i][1]
+
+            if np.array_equal(new_coord[i], old_coord[i]):
+                forces[i] = 0.0
+
         self.draw_nodes(new_coord)
-        print(forces)
-        print(forces/np.absolute(forces))
+        return forces
+
+    def move_nodes(self):
+        while True:
+            forces = self.one_step()
+            QtTest.QTest.qWait(10)
+            # print(forces)
+            # print(np.where(abs(forces) < 20)[0])
+            # print(np.arange(len(forces)))
+            print(np.sum(forces))
+            # if np.array_equal(np.where(abs(forces) < 10)[0], np.arange(len(forces))):
+            #     break
+            if abs(np.sum(forces)) < 10:
+                break
+
 
 if __name__ == "__main__":
     import sys
