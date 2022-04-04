@@ -52,11 +52,10 @@ class Ui_MainWindow(object):
         self.Count_spinBox.setMinimum(1)
         self.Count_spinBox.setMaximum(50)
         self.Count_spinBox.setObjectName("Count_spinBox")
-        self.Speed_spinBox = QtWidgets.QSpinBox(self.centralwidget)
-        self.Speed_spinBox.setGeometry(QtCore.QRect(410, 540, 50, 50))
-        self.Speed_spinBox.setMinimum(1)
-        self.Speed_spinBox.setMaximum(50)
-        self.Speed_spinBox.setObjectName("Speed_spinBox")
+        self.Speed_list = QtWidgets.QComboBox(self.centralwidget)
+        self.Speed_list.setGeometry(QtCore.QRect(410, 540, 50, 50))
+        self.Speed_list.addItems(["1", "10", "100", "1000", "inf"])
+        self.Speed_list.setObjectName("Speed_list")
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
@@ -73,7 +72,7 @@ class Ui_MainWindow(object):
     def add_functions(self):
         self.Draw_btn.clicked.connect(lambda: self.draw_random_nodes())
         # self.Draw_btn.clicked.connect(lambda: self.draw_edge(0, 0, 100, 100))
-        self.Shake_btn.clicked.connect(lambda: self.move_nodes())
+        self.Shake_btn.clicked.connect(lambda: self.move_nodes(self.Speed_list.currentText()))
         self.Clear_btn.clicked.connect(lambda: self.one_step())
 
     def get_nodes(self):
@@ -190,14 +189,17 @@ class Ui_MainWindow(object):
         self.draw_nodes(new_coord)
         return forces
 
-    def move_nodes(self):
+    def move_nodes(self, speed):
         while True:
             forces = self.one_step()
-            QtTest.QTest.qWait(10)
+            if speed.isdigit():
+                QtTest.QTest.qWait(int(100**(1/int(speed))))
+                print(abs(np.sum(forces)))
             # print(forces)
             # print(np.where(abs(forces) < 20)[0])
             # print(np.arange(len(forces)))
-            print(np.sum(forces))
+
+            # Вернуть
             # if np.array_equal(np.where(abs(forces) < 10)[0], np.arange(len(forces))):
             #     break
             if abs(np.sum(forces)) < 10:
