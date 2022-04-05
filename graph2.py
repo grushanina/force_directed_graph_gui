@@ -77,6 +77,9 @@ class Ui_MainWindow(object):
         self.Speed_list.setGeometry(QtCore.QRect(410, 540, 50, 50))
         self.Speed_list.addItems(["10", "100", "1000", "inf", "1"])
         self.Speed_list.setObjectName("Speed_list")
+        self.Matrix_TextEdit = QtWidgets.QTextEdit(self.centralwidget)
+        self.Matrix_TextEdit.setGeometry(QtCore.QRect(460, 540, 120, 50))
+        self.Matrix_TextEdit.setObjectName("Matrix_TextEdit")
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
@@ -100,6 +103,7 @@ class Ui_MainWindow(object):
     def set_matrix(self):
         self.matrix = np.ones((self.Count_spinBox.value(), self.Count_spinBox.value()))
         print(self.matrix)
+        self.Matrix_TextEdit.setText(str(self.matrix))
 
     def get_nodes(self):
         nodes = [item for item in self.scene.items() if isinstance(item, Node)]
@@ -124,7 +128,6 @@ class Ui_MainWindow(object):
         self.scene.addItem(line)
 
     def draw_edges(self, coord_array=None):
-
         for edge in self.get_edges():
             self.scene.removeItem(edge)
 
