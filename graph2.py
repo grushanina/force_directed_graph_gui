@@ -13,14 +13,35 @@ import numpy as np
 from PyQt5 import QtCore, QtWidgets
 from PyQt5 import QtTest
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QBrush, QPen
-from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsLineItem
+from PyQt5.QtGui import QBrush, QPen, QFont
+from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QGraphicsEllipseItem, QGraphicsTextItem
 
-from Node import *
+
+# from Node import *
 
 
 def get_coord(point):
     return np.array([point.x(), point.y()])
+
+
+class Node(QGraphicsEllipseItem):
+    def __init__(self, x, y, w, h, text, parent):
+        super().__init__(x, y, w, h)
+        self.font = QFont("Times", 20, QFont.Bold)
+        self.text = QGraphicsTextItem(text, parent=self)
+        self.text.setFont(self.font)
+        self.text.setPos(x, y)
+        self.parent = parent
+
+    def mousePressEvent(self, event):
+        super(Node, self).mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        self.parent.draw_edges()
+        super(Node, self).mouseReleaseEvent(event)
+
+    def get_pos(self):
+        return self.x(), self.y()
 
 
 class Ui_MainWindow(object):
@@ -49,18 +70,19 @@ class Ui_MainWindow(object):
         self.Clear_btn.setObjectName("Clear_btn")
         self.Count_spinBox = QtWidgets.QSpinBox(self.centralwidget)
         self.Count_spinBox.setGeometry(QtCore.QRect(0, 540, 50, 50))
-        self.Count_spinBox.setMinimum(1)
+        self.Count_spinBox.setMinimum(2)
         self.Count_spinBox.setMaximum(50)
         self.Count_spinBox.setObjectName("Count_spinBox")
         self.Speed_list = QtWidgets.QComboBox(self.centralwidget)
         self.Speed_list.setGeometry(QtCore.QRect(410, 540, 50, 50))
-        self.Speed_list.addItems(["1", "10", "100", "1000", "inf"])
+        self.Speed_list.addItems(["10", "100", "1000", "inf", "1"])
         self.Speed_list.setObjectName("Speed_list")
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
         self.add_functions()
+        self.matrix = np.ones((2, 2))
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -71,12 +93,21 @@ class Ui_MainWindow(object):
 
     def add_functions(self):
         self.Draw_btn.clicked.connect(lambda: self.draw_random_nodes())
-        # self.Draw_btn.clicked.connect(lambda: self.draw_edge(0, 0, 100, 100))
         self.Shake_btn.clicked.connect(lambda: self.move_nodes(self.Speed_list.currentText()))
         self.Clear_btn.clicked.connect(lambda: self.one_step())
+        self.Count_spinBox.valueChanged.connect(lambda: self.set_matrix())
+
+    def set_matrix(self):
+        self.matrix = np.ones((self.Count_spinBox.value(), self.Count_spinBox.value()))
+        print(self.matrix)
 
     def get_nodes(self):
         nodes = [item for item in self.scene.items() if isinstance(item, Node)]
+        nodes.reverse()
+        return nodes
+
+    def get_edges(self):
+        nodes = [item for item in self.scene.items() if isinstance(item, QGraphicsLineItem)]
         nodes.reverse()
         return nodes
 
@@ -92,8 +123,20 @@ class Ui_MainWindow(object):
         line.setPen(pen)
         self.scene.addItem(line)
 
+    def draw_edges(self, coord_array=None):
+
+        for edge in self.get_edges():
+            self.scene.removeItem(edge)
+
+        if coord_array is None:
+            coord_array = self.get_nodes_coord()
+        for i in range(len(coord_array)):
+            for j in range(i, len(coord_array)):
+                self.draw_edge(coord_array[i][0] + 30, coord_array[i][1] + 30,
+                               coord_array[j][0] + 30, coord_array[j][1] + 30)
+
     def draw_node(self, x, y, text):
-        node = Node(0, 0, 50, 50, text)
+        node = Node(0, 0, 50, 50, text, parent=self)
         node.setPos(x, y)
         node.setBrush(QBrush(Qt.red))
         node.setFlag(QGraphicsItem.ItemIsMovable)
@@ -102,12 +145,7 @@ class Ui_MainWindow(object):
     def draw_nodes(self, coord_array):
         self.scene.clear()
         count = 0
-
-        # for i in range(len(coord_array)):
-        #     for j in range(i, len(coord_array)):
-        #         self.draw_edge(coord_array[i][0] + 30, coord_array[i][1] + 30,
-        #                        coord_array[j][0] + 30, coord_array[j][1] + 30)
-
+        self.draw_edges(coord_array)
         for coord in coord_array:
             self.draw_node(coord[0], coord[1], str(count))
             count += 1
@@ -193,13 +231,12 @@ class Ui_MainWindow(object):
         while True:
             forces = self.one_step()
             if speed.isdigit():
-                QtTest.QTest.qWait(int(100**(1/int(speed))))
+                QtTest.QTest.qWait(int(100 ** (1 / int(speed))))
                 print(abs(np.sum(forces)))
             # print(forces)
             # print(np.where(abs(forces) < 20)[0])
             # print(np.arange(len(forces)))
 
-            # Вернуть
             # if np.array_equal(np.where(abs(forces) < 10)[0], np.arange(len(forces))):
             #     break
             if abs(np.sum(forces)) < 10:
