@@ -19,6 +19,14 @@ from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QG
 
 # from Node import *
 
+def str_to_matrix(string):
+    result = []
+    matrix_string = string[1:-1]
+    for row in matrix_string.split('\n '):
+        cur_row = np.array(row[1:-1].split(' ')).astype(int)
+        result.append(cur_row)
+    return np.array(result)
+
 
 def get_coord(point):
     return np.array([point.x(), point.y()])
@@ -37,8 +45,11 @@ class Node(QGraphicsEllipseItem):
         super(Node, self).mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
-        self.parent.draw_edges()
         super(Node, self).mouseReleaseEvent(event)
+        coords = self.parent.get_nodes_coord()
+        self.parent.scene.clear()
+        self.parent.draw_edges(coords)
+        self.parent.draw_nodes(coords)
 
     def get_pos(self):
         return self.x(), self.y()
@@ -80,12 +91,13 @@ class Ui_MainWindow(object):
         self.Matrix_TextEdit = QtWidgets.QTextEdit(self.centralwidget)
         self.Matrix_TextEdit.setGeometry(QtCore.QRect(460, 540, 120, 50))
         self.Matrix_TextEdit.setObjectName("Matrix_TextEdit")
+        self.Matrix_TextEdit.setText("[[1 1]\n [1 1]]")
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
         self.add_functions()
-        self.matrix = np.ones((2, 2))
+        self.matrix = np.ones((2, 2)).astype(int)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -100,10 +112,12 @@ class Ui_MainWindow(object):
         self.Clear_btn.clicked.connect(lambda: self.one_step())
         self.Count_spinBox.valueChanged.connect(lambda: self.set_matrix())
 
+    def check_symmetric(self):
+        matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
+        return np.allclose(matrix, matrix.T)
+
     def set_matrix(self):
-        self.matrix = np.ones((self.Count_spinBox.value(), self.Count_spinBox.value()))
-        print(self.matrix)
-        self.Matrix_TextEdit.setText(str(self.matrix))
+        self.Matrix_TextEdit.setText(str(np.ones((self.Count_spinBox.value(), self.Count_spinBox.value())).astype(int)))
 
     def get_nodes(self):
         nodes = [item for item in self.scene.items() if isinstance(item, Node)]
@@ -128,15 +142,16 @@ class Ui_MainWindow(object):
         self.scene.addItem(line)
 
     def draw_edges(self, coord_array=None):
+        matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
         for edge in self.get_edges():
             self.scene.removeItem(edge)
-
         if coord_array is None:
             coord_array = self.get_nodes_coord()
         for i in range(len(coord_array)):
             for j in range(i, len(coord_array)):
-                self.draw_edge(coord_array[i][0] + 30, coord_array[i][1] + 30,
-                               coord_array[j][0] + 30, coord_array[j][1] + 30)
+                if i != j and matrix[i][j] == 1:
+                    self.draw_edge(coord_array[i][0] + 30, coord_array[i][1] + 30,
+                                   coord_array[j][0] + 30, coord_array[j][1] + 30)
 
     def draw_node(self, x, y, text):
         node = Node(0, 0, 50, 50, text, parent=self)
@@ -154,13 +169,21 @@ class Ui_MainWindow(object):
             count += 1
 
     def draw_random_nodes(self):
-        coord_array = []
-        for i in range(self.Count_spinBox.value()):
-            x = random.randint(0, int(self.width - 50))
-            y = random.randint(0, int(self.height - 50))
-            coord_array.append([x, y])
-        self.draw_nodes(np.array(coord_array))
-        print(np.array(coord_array))
+        if not self.check_symmetric():
+            self.Matrix_TextEdit.setTextColor(Qt.red)
+            self.Matrix_TextEdit.setText(self.Matrix_TextEdit.toPlainText())
+        else:
+            self.Matrix_TextEdit.setTextColor(Qt.black)
+            self.Matrix_TextEdit.setText(self.Matrix_TextEdit.toPlainText())
+
+            coord_array = []
+            for i in range(self.Count_spinBox.value()):
+                x = random.randint(0, int(self.width - 50))
+                y = random.randint(0, int(self.height - 50))
+                coord_array.append([x, y])
+            self.draw_nodes(np.array(coord_array))
+            print(np.array(coord_array))
+            print(self.check_symmetric())
 
     def distance(self):
         points = self.get_nodes_coord()
@@ -172,13 +195,14 @@ class Ui_MainWindow(object):
         return distance
 
     def attractive_forces(self, c):
+        matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
         distance = self.distance()
         attractive = np.ones(distance.shape)
         l = c * np.sqrt(self.width * self.height / len(self.get_nodes()))
         for i in range(distance.shape[0]):
             for j in range(distance.shape[0]):
                 attractive[i][j] = (distance[i][j] ** 2) / l
-        return attractive
+        return attractive * matrix
 
     def repulsive_forces(self, c):
         distance = self.distance()
