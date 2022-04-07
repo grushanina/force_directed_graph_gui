@@ -1,0 +1,54 @@
+[
+    { "id": 1, "pids": [2], "name": "Михаил Федорович", "gender": "male"},
+    { "id": 2, "pids": [1], "name": "Евдокия Лукьяновна Стрешнева", "gender": "female"},
+    { "id": 3, "pids": [4,5], "mid": 1, "fid": 2, "name": "Алексей Михайлович", "gender": "male"},
+    { "id": 4, "pids": [3], "name": "Мария Ильинична Милославская", "gender": "female"},
+    { "id": 5, "pids": [3], "name": "Наталья Кирилловна Нарышкина", "gender": "female"},
+    { "id": 6, "pids": [9],"mid": 3, "fid": 4, "name": "Федор Алексеевич", "gender": "male"},
+    { "id": 7, "mid": 3, "fid": 4, "name": "Софья Алексеевна", "gender": "female"},
+    { "id": 8, "pids": [10],"mid": 3, "fid": 4, "name": "Иоанн V Алексеевич", "gender": "male"},
+    { "id": 9, "pids": [6], "name": "Марфа Матвеевна Апраксина", "gender": "female"},
+    { "id": 10, "pids": [8], "name": "Прасковья Федоровна Салтыкова", "gender": "female"},
+    { "id": 11,"pids": [13], "mid": 8, "fid": 10, "name": "Екатерина Иоановна", "gender": "female"},
+    { "id": 12,"pids": [14], "mid": 8, "fid": 10, "name": "Анна Иоановна", "gender": "female"},
+    { "id": 13,"pids": [11], "name": "Карл Леопольд Мекленбург-Шверенский", "gender": "male"},
+    { "id": 14,"pids": [12], "name": "Фридрих Вильгельм Курляндский", "gender": "male"},
+    { "id": 15,"pids": [16], "mid": 13, "fid": 11, "name": "Анна Леопольдовна", "gender": "female"},
+    { "id": 16,"pids": [15], "name": "Антон Ульрих Брауншвейг-Вольфенбюттельский", "gender": "male"},
+    { "id": 17,"mid": 15, "fid": 16, "name": "Иоанн VI Антонович", "gender": "male"},
+    { "id": 18,"pids": [19,20], "mid": 3, "fid": 5, "name": "Петр I Алексеевич", "gender": "male"},
+    { "id": 19,"pids": [18], "name": "Еводокия Федоровна Лопухина", "gender": "female"},
+    { "id": 20,"pids": [18], "name": "Екатерина I Алексеевна", "gender": "female"},
+    { "id": 21,"pids": [22], "mid": 18, "fid": 19, "name": "Алексей Петрович", "gender": "male"},
+    { "id": 22,"pids": [21], "name": "Наталья Алексеевна Брауншвейг-Вольфенбюттельская", "gender": "female"},
+    { "id": 23,"mid": 22, "fid": 21, "name": "Петр II Алексеевич", "gender": "male"},
+    { "id": 24,"pids": [26],"mid": 18, "fid": 20, "name": "Анна Петровна", "gender": "female"},
+    { "id": 25,"mid": 18, "fid": 20, "name": "Елизавета  Петровна", "gender": "female"},
+    { "id": 26,"pids": [24], "name": "Карл Фридрих Гольштейн-Готторпсикй   ", "gender": "male"},
+    { "id": 27,"pids": [28],"mid": 26, "fid": 24, "name": "Петр II Федорович", "gender": "male"},
+    { "id": 28,"pids": [27], "name": "Екатерина II Алексеевна", "gender": "female"},
+    { "id": 29,"pids": [30,31],"mid": 27, "fid": 28, "name": "Павел I Петрович", "gender": "male"},
+    { "id": 30,"pids": [29], "name": "Наталья Алексеевна Гессен-Дармштадская", "gender": "female"},
+    { "id": 31,"pids": [29], "name": "Мария Федоровна Вюртембергская", "gender": "female"},
+    { "id": 32,"pids": [34],"mid": 29, "fid": 30 , "name": "Александр I Павлович", "gender": "male"},
+    { "id": 33,"pids": [35],"mid": 29, "fid": 30 , "name": "Николай I Павлович", "gender": "male"},
+    { "id": 34,"pids": [32], "name": "Елизавета Алексеевна Баден-Дурлахская", "gender": "female"},
+    { "id": 35,"pids": [33], "name": "Александра Федоровна Прусская", "gender": "female"},
+    { "id": 36,"pids": [37],"mid": 33, "fid": 35 , "name": "Александр II Николаевич", "gender": "male"},
+    { "id": 37,"pids": [36], "name": "Мария Александровна Гессенская", "gender": "female"},
+    { "id": 38,"pids": [39],"mid": 36, "fid": 37 , "name": "Александр III Александрович", "gender": "male"},
+    { "id": 39,"pids": [38], "name": "Мария Федоровна Датская", "gender": "female"},
+    { "id": 40,"pids": [41],"mid": 38, "fid": 39 , "name": "Николай II Александрович", "gender": "male"},
+    { "id": 41,"pids": [40], "name": "Александра Федоровна Гессенская", "gender": "female"}
+]
+
+
+
+
+
+
+
+
+
+
+

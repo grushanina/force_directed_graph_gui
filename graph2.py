@@ -17,7 +17,7 @@ from PyQt5.QtGui import QBrush, QPen, QFont
 from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QGraphicsEllipseItem, QGraphicsTextItem
 
 
-# from Node import *
+from FamilyTree import *
 
 def str_to_matrix(string):
     result = []
@@ -92,6 +92,9 @@ class Ui_MainWindow(object):
         self.Matrix_TextEdit.setGeometry(QtCore.QRect(460, 540, 120, 50))
         self.Matrix_TextEdit.setObjectName("Matrix_TextEdit")
         self.Matrix_TextEdit.setText("[[1 1]\n [1 1]]")
+        self.Import_btn = QtWidgets.QPushButton(self.centralwidget)
+        self.Import_btn.setGeometry(QtCore.QRect(580, 540, 120, 50))
+        self.Import_btn.setObjectName("Import_btn")
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
@@ -103,14 +106,16 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.Draw_btn.setText(_translate("MainWindow", "Draw"))
-        self.Shake_btn.setText(_translate("MainWindow", "Shake"))
-        self.Clear_btn.setText(_translate("MainWindow", "Clear"))
+        self.Shake_btn.setText(_translate("MainWindow", "Move"))
+        self.Clear_btn.setText(_translate("MainWindow", "One step"))
+        self.Import_btn.setText(_translate("MainWindow", "Import JSON"))
 
     def add_functions(self):
         self.Draw_btn.clicked.connect(lambda: self.draw_random_nodes())
         self.Shake_btn.clicked.connect(lambda: self.move_nodes(self.Speed_list.currentText()))
         self.Clear_btn.clicked.connect(lambda: self.one_step())
         self.Count_spinBox.valueChanged.connect(lambda: self.set_matrix())
+        self.Import_btn.clicked.connect(lambda: self.import_json('data/tree3_simple.json'))
 
     def check_symmetric(self):
         matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
@@ -177,7 +182,8 @@ class Ui_MainWindow(object):
             self.Matrix_TextEdit.setText(self.Matrix_TextEdit.toPlainText())
 
             coord_array = []
-            for i in range(self.Count_spinBox.value()):
+            matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
+            for i in range(matrix.shape[0]):
                 x = random.randint(0, int(self.width - 50))
                 y = random.randint(0, int(self.height - 50))
                 coord_array.append([x, y])
@@ -269,6 +275,12 @@ class Ui_MainWindow(object):
             if abs(np.sum(forces)) < 10:
                 break
 
+    def import_json(self, file_name):
+        family_tree = FamilyTree(open_json(file_name))
+        df = family_tree.get_links_pair_families_df()
+        G = nx.from_pandas_edgelist(df, 'source_id', 'target_id')
+        self.Matrix_TextEdit.setText(str(nx.adjacency_matrix(G).toarray()))
+        # self.Count_spinBox.setValue(len(G.nodes()))
 
 if __name__ == "__main__":
     import sys
