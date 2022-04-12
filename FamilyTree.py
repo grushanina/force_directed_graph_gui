@@ -179,6 +179,7 @@ class FamilyTree:
 
 
 # family_tree = FamilyTree(open_json('data/tree3_simple.json'))
-# df = family_tree.get_links_pair_families_df()
+# df = family_tree.get_links_pair_df()
+# print(df)
 # G = nx.from_pandas_edgelist(df, 'source_id', 'target_id')
-# print(len(G.nodes()))
+# print(G.nodes())

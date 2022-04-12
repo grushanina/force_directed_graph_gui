@@ -16,8 +16,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QBrush, QPen, QFont
 from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QGraphicsEllipseItem, QGraphicsTextItem
 
-
 from FamilyTree import *
+
 
 def str_to_matrix(string):
     result = []
@@ -33,26 +33,32 @@ def get_coord(point):
 
 
 class Node(QGraphicsEllipseItem):
-    def __init__(self, x, y, w, h, text, parent):
+    def __init__(self, x, y, w, h, text, parent, disp):
         super().__init__(x, y, w, h)
         self.font = QFont("Times", 20, QFont.Bold)
         self.text = QGraphicsTextItem(text, parent=self)
         self.text.setFont(self.font)
         self.text.setPos(x, y)
         self.parent = parent
+        self.disp = disp
 
     def mousePressEvent(self, event):
         super(Node, self).mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
         super(Node, self).mouseReleaseEvent(event)
-        coords = self.parent.get_nodes_coord()
-        self.parent.scene.clear()
-        self.parent.draw_edges(coords)
-        self.parent.draw_nodes(coords)
 
     def get_pos(self):
-        return self.x(), self.y()
+        return np.array([self.x(), self.y()])
+
+
+class Edge(QGraphicsLineItem):
+    def __init__(self, node1, node2):
+        self.v = node1
+        self.u = node2
+        pos1 = node1.get_pos()
+        pos2 = node2.get_pos()
+        super().__init__(pos1[0] + 30, pos1[1] + 30, pos2[0] + 30, pos2[1] + 30)
 
 
 class Ui_MainWindow(object):
@@ -135,36 +141,34 @@ class Ui_MainWindow(object):
         return nodes
 
     def get_edges(self):
-        nodes = [item for item in self.scene.items() if isinstance(item, QGraphicsLineItem)]
-        nodes.reverse()
-        return nodes
+        edges = [item for item in self.scene.items() if isinstance(item, Edge)]
+        edges.reverse()
+        return edges
 
     def get_nodes_coord(self):
         nodes = self.get_nodes()
         coord = list(map(get_coord, nodes))
         return np.array(coord)
 
-    def draw_edge(self, x1, y1, x2, y2):
-        line = QGraphicsLineItem(x1, y1, x2, y2)
+    def draw_edge(self, node1, node2):
+        edge = Edge(node1, node2)
         pen = QPen(Qt.blue)
         pen.setWidth(3)
-        line.setPen(pen)
-        self.scene.addItem(line)
+        edge.setPen(pen)
+        self.scene.addItem(edge)
 
-    def draw_edges(self, coord_array=None):
+    def draw_edges(self):
         matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
         for edge in self.get_edges():
             self.scene.removeItem(edge)
-        if coord_array is None:
-            coord_array = self.get_nodes_coord()
-        for i in range(len(coord_array)):
-            for j in range(i, len(coord_array)):
+        nodes = self.get_nodes()
+        for i in range(len(nodes)):
+            for j in range(i, len(nodes)):
                 if i != j and matrix[i][j] == 1:
-                    self.draw_edge(coord_array[i][0] + 30, coord_array[i][1] + 30,
-                                   coord_array[j][0] + 30, coord_array[j][1] + 30)
+                    self.draw_edge(nodes[i], nodes[j])
 
     def draw_node(self, x, y, text):
-        node = Node(0, 0, 50, 50, text, parent=self)
+        node = Node(0, 0, 50, 50, text, parent=self, disp=np.array([0, 0]))
         node.setPos(x, y)
         node.setBrush(QBrush(Qt.red))
         node.setFlag(QGraphicsItem.ItemIsMovable)
@@ -173,10 +177,10 @@ class Ui_MainWindow(object):
     def draw_nodes(self, coord_array):
         self.scene.clear()
         count = 0
-        self.draw_edges(coord_array)
         for coord in coord_array:
             self.draw_node(coord[0], coord[1], str(count))
             count += 1
+        self.draw_edges()
 
     def draw_random_nodes(self):
         if not self.check_symmetric():
@@ -193,92 +197,8 @@ class Ui_MainWindow(object):
                 y = random.randint(0, int(self.height - 50))
                 coord_array.append([x, y])
             self.draw_nodes(np.array(coord_array))
-            print(np.array(coord_array))
-            print(self.check_symmetric())
-
-    def distance(self):
-        points = self.get_nodes_coord()
-        length = len(points)
-        distance = np.ones((length, length))
-        for i in range(length):
-            for j in range(length):
-                distance[i][j] = np.linalg.norm(points[i] - points[j])
-        return distance
-
-    def attractive_forces(self, c):
-        matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
-        distance = self.distance()
-        attractive = np.ones(distance.shape)
-        l = c * np.sqrt(self.width * self.height / len(self.get_nodes()))
-        for i in range(distance.shape[0]):
-            for j in range(distance.shape[0]):
-                attractive[i][j] = (distance[i][j] ** 2) / l
-        return attractive * matrix
-
-    def repulsive_forces(self, c):
-        distance = self.distance()
-        repulsive = np.ones(distance.shape)
-        l = c * np.sqrt(self.width * self.height / len(self.get_nodes()))
-        for i in range(distance.shape[0]):
-            for j in range(distance.shape[0]):
-                if distance[i][j] == 0:
-                    repulsive[i][j] = 0.
-                else:
-                    repulsive[i][j] = (l ** 2) / distance[i][j]
-        return repulsive
-
-    def forces(self, c):
-        return self.attractive_forces(c) - self.repulsive_forces(c)
-
-    def unit_vectors(self):
-        points = self.get_nodes_coord()
-        length = len(points)
-        distance = self.distance()
-        units = np.ones((length, length, 2))
-        for i in range(length):
-            for j in range(length):
-                if distance[i][j] == 0:
-                    units[i][j] = [0., 0.]
-                else:
-                    units[i][j] = (points[i] - points[j]) / distance[i][j]
-        return units
-
-    def one_step(self):
-        forces = np.sum(self.forces(1), axis=0)
-        forces_sign = forces / np.absolute(forces)
-        vectors = np.sum(self.unit_vectors(), axis=0) / len(self.get_nodes())
-
-        old_coord = self.get_nodes_coord()
-        new_coord = np.ones(old_coord.shape)
-
-        for i in range(old_coord.shape[0]):
-            new_coord[i] = old_coord[i] + (forces_sign[i] * vectors[i])
-
-            if new_coord[i][0] <= 0 or new_coord[i][0] >= self.width - 50:
-                new_coord[i][0] = old_coord[i][0]
-            if new_coord[i][1] <= 0 or new_coord[i][1] >= self.height - 50:
-                new_coord[i][1] = old_coord[i][1]
-
-            if np.array_equal(new_coord[i], old_coord[i]):
-                forces[i] = 0.0
-
-        self.draw_nodes(new_coord)
-        return forces
-
-    def move_nodes(self, speed):
-        while True:
-            forces = self.one_step()
-            if speed.isdigit():
-                QtTest.QTest.qWait(int(100 ** (1 / int(speed))))
-                print(abs(np.sum(forces)))
-            # print(forces)
-            # print(np.where(abs(forces) < 20)[0])
-            # print(np.arange(len(forces)))
-
-            # if np.array_equal(np.where(abs(forces) < 10)[0], np.arange(len(forces))):
-            #     break
-            if abs(np.sum(forces)) < 10:
-                break
+            # print(np.array(coord_array))
+            # print(self.check_symmetric())
 
     def import_json(self, file_name):
         family_tree = FamilyTree(open_json(file_name))
@@ -292,8 +212,66 @@ class Ui_MainWindow(object):
         result = matrix
         for i in range(matrix.shape[0]):
             for j in range(matrix.shape[0]):
-                result[j][i] =matrix[i][j]
+                result[j][i] = matrix[i][j]
         self.Matrix_TextEdit.setText(str(result))
+
+    def distance(self):
+        pass
+
+
+
+    def f_a(self, x):
+        k = np.sqrt(self.width * self.height / len(self.get_nodes()))
+        return x ** 2 / k
+
+    def f_r(self, x):
+        k = np.sqrt(self.width * self.height / len(self.get_nodes()))
+        return k ** 2 / x
+
+    def forces(self):
+        pass
+
+    def unit_vectors(self):
+        pass
+
+    def one_step(self):
+        t = np.array([1.0, 1.0])
+        V = self.get_nodes()
+        E = self.get_edges()
+        for v in V:
+            v.disp = np.array([0, 0])
+            for u in V:
+                if u != v:
+                    delta = v.get_pos() - u.get_pos()
+                    v.disp = v.disp + (delta / np.linalg.norm(delta)) * self.f_r(np.linalg.norm(delta))
+
+        print('after repulsive')
+        for v in V:
+            print(v.disp)
+
+        for e in E:
+            delta = e.v.get_pos() - e.u.get_pos()
+            e.v.disp = e.v.disp - (delta / np.linalg.norm(delta)) * self.f_a(np.linalg.norm(delta))
+            e.u.disp = e.u.disp + (delta / np.linalg.norm(delta)) * self.f_a(np.linalg.norm(delta))
+
+        print('after attractive')
+        for v in V:
+            print(v.disp)
+
+        for v in V:
+            new_pos = v.get_pos() + (v.disp / np.linalg.norm(v.disp)) * np.array([0.5, 0.5]) #* np.minimum(v.disp, t)
+            new_pos[0] = min((self.width - 50), max(-(self.width - 50), new_pos[0]))
+            new_pos[1] = min((self.height - 50), max(-(self.height - 50), new_pos[1]))
+            text = v.text.toPlainText()
+            self.scene.removeItem(v)
+            self.draw_node(new_pos[0], new_pos[1], text)
+
+    def move_nodes(self, speed):
+        t = np.array([0.5, 0.5])
+        while True:
+            QtTest.QTest.qWait(100)
+            self.one_step()
+
 
 if __name__ == "__main__":
     import sys
