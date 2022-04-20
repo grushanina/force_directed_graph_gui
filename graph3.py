@@ -166,6 +166,7 @@ class Ui_MainWindow(object):
             for j in range(i, len(nodes)):
                 if i != j and matrix[i][j] == 1:
                     self.draw_edge(nodes[i], nodes[j])
+                    # print(nodes[i], nodes[j])
 
     def draw_node(self, x, y, text):
         node = Node(0, 0, 50, 50, text, parent=self, disp=np.array([0, 0]))
@@ -215,62 +216,67 @@ class Ui_MainWindow(object):
                 result[j][i] = matrix[i][j]
         self.Matrix_TextEdit.setText(str(result))
 
-    def distance(self):
-        pass
-
-
-
     def f_a(self, x):
-        k = np.sqrt(self.width * self.height / len(self.get_nodes()))
+        k = np.sqrt(self.width * self.height / len(self.get_nodes()))/10
+        print(x ** 2 / k)
         return x ** 2 / k
 
     def f_r(self, x):
-        k = np.sqrt(self.width * self.height / len(self.get_nodes()))
+        k = np.sqrt(self.width * self.height / len(self.get_nodes()))/10
+        print(k ** 2 / x)
         return k ** 2 / x
 
-    def forces(self):
-        pass
-
-    def unit_vectors(self):
-        pass
-
-    def one_step(self):
-        t = np.array([1.0, 1.0])
+    def one_step(self, t):
+        # t = 1.0
         V = self.get_nodes()
         E = self.get_edges()
+        # сила отталкивания
         for v in V:
             v.disp = np.array([0, 0])
             for u in V:
                 if u != v:
                     delta = v.get_pos() - u.get_pos()
                     v.disp = v.disp + (delta / np.linalg.norm(delta)) * self.f_r(np.linalg.norm(delta))
+                    # print(v.text.toPlainText() + ' ' + u.text.toPlainText() + ': ')
+                    # print((delta / np.linalg.norm(delta)) * self.f_r(np.linalg.norm(delta)))
 
-        print('after repulsive')
-        for v in V:
-            print(v.disp)
-
+        # print('after repulsive')
+        # for v in V:
+        #     print(v.disp)
+        print(E)
+        # сила притяжения
         for e in E:
             delta = e.v.get_pos() - e.u.get_pos()
             e.v.disp = e.v.disp - (delta / np.linalg.norm(delta)) * self.f_a(np.linalg.norm(delta))
             e.u.disp = e.u.disp + (delta / np.linalg.norm(delta)) * self.f_a(np.linalg.norm(delta))
+            # print(e.v.text.toPlainText() + ' ' + e.u.text.toPlainText() + ': ')
+            # print((delta / np.linalg.norm(delta)) * self.f_a(np.linalg.norm(delta)))
 
-        print('after attractive')
-        for v in V:
-            print(v.disp)
+        # print('after attractive')
+        # for v in V:
+        #     print(v.disp)
 
+        # перемещаем узлы
         for v in V:
-            new_pos = v.get_pos() + (v.disp / np.linalg.norm(v.disp)) * np.array([0.5, 0.5]) #* np.minimum(v.disp, t)
-            new_pos[0] = min((self.width - 50), max(-(self.width - 50), new_pos[0]))
-            new_pos[1] = min((self.height - 50), max(-(self.height - 50), new_pos[1]))
+            # вычисляем новые координаты
+            new_pos = v.get_pos() + (v.disp / np.linalg.norm(v.disp)) * np.minimum(np.linalg.norm(v.disp), t)
+            # огранение выхода узла за рамки
+            new_pos[0] = min((self.width - 50), max(0, new_pos[0]))
+            new_pos[1] = min((self.height - 50), max(0, new_pos[1]))
+            # удаляем старый узел и создаём новый
             text = v.text.toPlainText()
             self.scene.removeItem(v)
             self.draw_node(new_pos[0], new_pos[1], text)
+            print('new_pos:')
+            print(v.pos())
 
     def move_nodes(self, speed):
-        t = np.array([0.5, 0.5])
+        t = 100.0
         while True:
-            QtTest.QTest.qWait(100)
-            self.one_step()
+            QtTest.QTest.qWait(1)
+            self.one_step(t)
+            t *= 0.9999
+
 
 
 if __name__ == "__main__":
