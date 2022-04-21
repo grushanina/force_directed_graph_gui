@@ -5,8 +5,7 @@
 # Created by: PyQt5 UI code generator 5.13.2
 #
 # WARNING! All changes made in this file will be lost!
-
-
+import math
 import random
 
 import numpy as np
@@ -105,6 +104,7 @@ class Ui_MainWindow(object):
         self.Random_btn.setGeometry(QtCore.QRect(700, 540, 90, 50))
         self.Random_btn.setObjectName("Random_btn")
         MainWindow.setCentralWidget(self.centralwidget)
+        self.vel = math.sqrt(self.width*self.height)*0.1
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -175,6 +175,10 @@ class Ui_MainWindow(object):
         node.setFlag(QGraphicsItem.ItemIsMovable)
         self.scene.addItem(node)
 
+    def redraw_node(self, v, x, y):
+        v.setPos(x, y)
+
+
     def draw_nodes(self, coord_array):
         self.scene.clear()
         count = 0
@@ -198,8 +202,6 @@ class Ui_MainWindow(object):
                 y = random.randint(0, int(self.height - 50))
                 coord_array.append([x, y])
             self.draw_nodes(np.array(coord_array))
-            # print(np.array(coord_array))
-            # print(self.check_symmetric())
 
     def import_json(self, file_name):
         family_tree = FamilyTree(open_json(file_name))
@@ -217,17 +219,14 @@ class Ui_MainWindow(object):
         self.Matrix_TextEdit.setText(str(result))
 
     def f_a(self, x):
-        k = np.sqrt(self.width * self.height / len(self.get_nodes()))/10
-        print(x ** 2 / k)
+        k = np.sqrt(self.width * self.height / len(self.get_nodes()))
         return x ** 2 / k
 
     def f_r(self, x):
-        k = np.sqrt(self.width * self.height / len(self.get_nodes()))/10
-        print(k ** 2 / x)
+        k = np.sqrt(self.width * self.height / len(self.get_nodes()))
         return k ** 2 / x
 
-    def one_step(self, t):
-        # t = 1.0
+    def one_step(self):
         V = self.get_nodes()
         E = self.get_edges()
         # сила отталкивания
@@ -237,45 +236,32 @@ class Ui_MainWindow(object):
                 if u != v:
                     delta = v.get_pos() - u.get_pos()
                     v.disp = v.disp + (delta / np.linalg.norm(delta)) * self.f_r(np.linalg.norm(delta))
-                    # print(v.text.toPlainText() + ' ' + u.text.toPlainText() + ': ')
-                    # print((delta / np.linalg.norm(delta)) * self.f_r(np.linalg.norm(delta)))
 
-        # print('after repulsive')
-        # for v in V:
-        #     print(v.disp)
-        print(E)
         # сила притяжения
         for e in E:
             delta = e.v.get_pos() - e.u.get_pos()
             e.v.disp = e.v.disp - (delta / np.linalg.norm(delta)) * self.f_a(np.linalg.norm(delta))
             e.u.disp = e.u.disp + (delta / np.linalg.norm(delta)) * self.f_a(np.linalg.norm(delta))
-            # print(e.v.text.toPlainText() + ' ' + e.u.text.toPlainText() + ': ')
-            # print((delta / np.linalg.norm(delta)) * self.f_a(np.linalg.norm(delta)))
 
-        # print('after attractive')
-        # for v in V:
-        #     print(v.disp)
 
         # перемещаем узлы
         for v in V:
             # вычисляем новые координаты
-            new_pos = v.get_pos() + (v.disp / np.linalg.norm(v.disp)) * np.minimum(np.linalg.norm(v.disp), t)
+            new_pos = v.get_pos() + (v.disp / np.linalg.norm(v.disp)) * self.vel
             # огранение выхода узла за рамки
             new_pos[0] = min((self.width - 50), max(0, new_pos[0]))
             new_pos[1] = min((self.height - 50), max(0, new_pos[1]))
-            # удаляем старый узел и создаём новый
-            text = v.text.toPlainText()
-            self.scene.removeItem(v)
-            self.draw_node(new_pos[0], new_pos[1], text)
-            print('new_pos:')
-            print(v.pos())
+            # перемещаем
+            v.setPos(new_pos[0], new_pos[1])
+        self.vel *= 0.97
 
     def move_nodes(self, speed):
-        t = 100.0
-        while True:
+        while self.vel > 0.1:
             QtTest.QTest.qWait(1)
-            self.one_step(t)
-            t *= 0.9999
+            self.one_step()
+            self.draw_edges()
+            print('test')
+
 
 
 
