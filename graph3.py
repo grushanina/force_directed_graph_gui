@@ -204,7 +204,7 @@ class Ui_MainWindow(object):
 
     def import_json(self, file_name):
         family_tree = FamilyTree(open_json(file_name))
-        df = family_tree.get_links_pair_df()
+        df = family_tree.get_links_pair_families_df()
         G = nx.from_pandas_edgelist(df, 'source_id', 'target_id')
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
