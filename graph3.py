@@ -1,5 +1,6 @@
 import math
 import random
+import sys
 import warnings
 
 import numpy as np
@@ -11,6 +12,7 @@ from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QG
 
 from FamilyTree import *
 
+np.set_printoptions(threshold=sys.maxsize)
 
 def str_to_matrix(string):
     result = []
@@ -53,10 +55,10 @@ class Edge(QGraphicsLineItem):
         self.u = node2
         pos1 = node1.get_pos()
         pos2 = node2.get_pos()
-        super().__init__(pos1[0] + 30 / node1.c,
-                         pos1[1] + 30 / node1.c,
-                         pos2[0] + 30 / node2.c,
-                         pos2[1] + 30 / node2.c)
+        super().__init__(pos1[0] + 20 / node1.c,
+                         pos1[1] + 20 / node1.c,
+                         pos2[0] + 20 / node2.c,
+                         pos2[1] + 20 / node2.c)
 
 
 class Ui_MainWindow(object):
@@ -109,6 +111,7 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
         self.add_functions()
         self.matrix = np.ones((2, 2)).astype(int)
+        self.family_tree = {0: {'shortname': '0'}, 1: {'shortname': '1'}}
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -123,16 +126,20 @@ class Ui_MainWindow(object):
         self.Shake_btn.clicked.connect(lambda: self.move_nodes(self.Speed_list.currentText()))
         self.Count_spinBox.valueChanged.connect(lambda: self.set_matrix())
         self.Import_btn.clicked.connect(lambda: self.import_json('data/tree3_simple.json'))
-        self.Random_btn.clicked.connect(lambda: self.random_graph())
         self.Mode_list.currentTextChanged.connect(lambda: self.set_mode())
 
     def check_symmetric(self):
-        matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
-        return np.allclose(matrix, matrix.T)
+        # matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
+        return np.allclose(self.matrix, self.matrix.T)
 
     def set_matrix(self):
         # self.Matrix_TextEdit.setText(str(np.ones((self.Count_spinBox.value(), self.Count_spinBox.value())).astype(int)))
-        self.Matrix_TextEdit.setText(self.get_matrix_mode(self.Mode_list.currentText()))
+        self.Matrix_TextEdit.setText(str(self.get_matrix_mode(self.Mode_list.currentText())))
+        self.matrix = self.get_matrix_mode(self.Mode_list.currentText())
+        self.family_tree = {}
+        for i in range(self.matrix.shape[0]):
+            self.family_tree.update({i: {'shortname': str(i)}})
+        print(self.family_tree)
 
     def get_nodes(self):
         nodes = [item for item in self.scene.items() if isinstance(item, Node)]
@@ -157,18 +164,18 @@ class Ui_MainWindow(object):
         self.scene.addItem(edge)
 
     def draw_edges(self):
-        matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
+        # matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
         for edge in self.get_edges():
             self.scene.removeItem(edge)
         nodes = self.get_nodes()
         for i in range(len(nodes)):
             for j in range(i, len(nodes)):
-                if i != j and matrix[i][j] == 1:
+                if i != j and self.matrix[i][j] == 1:
                     self.draw_edge(nodes[i], nodes[j])
                     # print(nodes[i], nodes[j])
 
     def draw_node(self, x, y, text):
-        node = Node(0, 0, 50, 50, text,
+        node = Node(0, 0, 40, 40, text,
                     parent=self,
                     disp=np.array([0, 0]),
                     c=1)
@@ -182,7 +189,7 @@ class Ui_MainWindow(object):
         self.scene.clear()
         count = 0
         for coord in coord_array:
-            self.draw_node(coord[0], coord[1], str(count))
+            self.draw_node(coord[0], coord[1], self.family_tree[count]['shortname'])
             count += 1
         self.draw_edges()
 
@@ -195,8 +202,8 @@ class Ui_MainWindow(object):
             self.Matrix_TextEdit.setText(self.Matrix_TextEdit.toPlainText())
 
             coord_array = []
-            matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
-            for i in range(matrix.shape[0]):
+            # matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
+            for i in range(self.matrix.shape[0]):
                 x = random.randint(0, int(self.width - 50))
                 y = random.randint(0, int(self.height - 50))
                 coord_array.append([x, y])
@@ -206,25 +213,21 @@ class Ui_MainWindow(object):
         family_tree = FamilyTree(open_json(file_name))
         df = family_tree.get_links_pair_families_df()
         G = nx.from_pandas_edgelist(df, 'source_id', 'target_id')
+        for obj in family_tree.get_tree_family().values():
+            G.nodes[obj.get_data()['id']].update(obj.get_data())
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.Matrix_TextEdit.setText(str(nx.adjacency_matrix(G).toarray()))
+            self.matrix = nx.adjacency_matrix(G).toarray()
         # self.Count_spinBox.setValue(len(G.nodes()))
 
-    def random_graph(self):
-        matrix = np.random.randint(0, 2, size=(self.Count_spinBox.value(), self.Count_spinBox.value()))
-        result = matrix
-        for i in range(matrix.shape[0]):
-            for j in range(matrix.shape[0]):
-                result[j][i] = matrix[i][j]
-        self.Matrix_TextEdit.setText(str(result))
 
     def f_a(self, x):
-        k = np.sqrt(self.width * self.height / len(self.get_nodes())) / 5
+        k = np.sqrt(self.width * self.height / len(self.get_nodes())) / 4
         return x ** 2 / k
 
     def f_r(self, x):
-        k = np.sqrt(self.width * self.height / len(self.get_nodes())) / 5
+        k = np.sqrt(self.width * self.height / len(self.get_nodes())) / 4
         return k ** 2 / x
 
     def one_step(self, vel):
@@ -267,7 +270,8 @@ class Ui_MainWindow(object):
             print(vel)
 
     def set_mode(self):
-        self.Matrix_TextEdit.setText(self.get_matrix_mode(self.Mode_list.currentText()))
+        self.Matrix_TextEdit.setText(str(self.get_matrix_mode(self.Mode_list.currentText())))
+        self.matrix = self.get_matrix_mode(self.Mode_list.currentText())
 
     def get_matrix_mode(self, mode):
         with warnings.catch_warnings():
@@ -285,8 +289,8 @@ class Ui_MainWindow(object):
                     edges.append((i, i + 1))
 
             if mode == 'Grid':
-                h = 3
-                w = 3
+                h = 5
+                w = 5
                 for i in range(h):
                     for j in range(w - 1):
                         u = i * w + j
@@ -319,7 +323,7 @@ class Ui_MainWindow(object):
                         edges.append((i, j))
 
             G = nx.Graph(edges)
-            return str(nx.adjacency_matrix(G).toarray())
+            return nx.adjacency_matrix(G).toarray()
 
 
 

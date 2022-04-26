@@ -16,6 +16,7 @@ class Person:
     def __init__(self, dictionary):
         self.id = dictionary['id']
         self.name = dictionary['name']
+        self.shortname = dictionary['shortname']
         self.gender = dictionary['gender']
         if 'pids' in dictionary.keys():
             self.pids = dictionary['pids']
@@ -41,6 +42,15 @@ class Person:
         result += ', ' + str(self.rank)
         return '{' + result + '}'
 
+    def get_data(self):
+        data = {'id': self.id,
+                'type': 'person',
+                'name': self.name,
+                'shortname': self.shortname,
+                'gender': self.gender,
+                'rank': self.rank}
+        return data
+
 
 class Family:
     def __init__(self, id, sid1, sid2, cids):
@@ -54,10 +64,19 @@ class Family:
         return '{' + result + '}'
 
     def __eq__(self, other):
-        if self.sid1 == other.sid1 or self.sid2 == other.sid2 or self.cids == other.cids:
+        if ((self.sid1 == other.sid1 and self.sid2 == other.sid2) or (
+                self.sid2 == other.sid1 and self.sid1 == other.sid2)) and self.cids == other.cids:
             return True
         else:
             return False
+
+    def get_data(self):
+        data = {'id': self.id,
+                'type': 'person',
+                'sid1': self.sid1,
+                'sid2': self.sid2,
+                'cids': self.cids}
+        return data
 
 
 class FamilyTree:
@@ -174,12 +193,29 @@ class FamilyTree:
         df = pd.DataFrame.from_dict(df_dict)
         return df
 
-    def get_graph(self):
-        pass
+    def get_tree_family(self):
+        tree_family = {}
+        tree_family.update(self.tree)
+        tree_family.update(self.families)
+        return tree_family
 
 
-# family_tree = FamilyTree(open_json('data/tree3_simple.json'))
-# df = family_tree.get_links_pair_df()
+family_tree = FamilyTree(open_json('data/tree3_simple.json'))
+df = family_tree.get_links_pair_families_df()
 # print(df)
-# G = nx.from_pandas_edgelist(df, 'source_id', 'target_id')
-# print(G.nodes())
+# print(family_tree.get_tree_family().values())
+
+# for person in family_tree.get_tree_family().values():
+#     print(person.get_data())
+
+G = nx.from_pandas_edgelist(df, 'source_id', 'target_id')
+
+# for node in G.nodes():
+#     print(node)
+#     print(family_tree.get_tree_family()[node].get_data())
+#     # nx.set_node_attributes(G, node, family_tree.get_tree_family()[node].get_data())
+
+for obj in family_tree.get_tree_family().values():
+    G.nodes[obj.get_data()['id']].update(obj.get_data())
+
+print(dict(G.nodes(data=True)))
