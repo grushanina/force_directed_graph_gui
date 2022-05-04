@@ -2,17 +2,19 @@ import math
 import random
 import sys
 import warnings
+import os.path
 
 import numpy as np
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5 import QtTest
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QBrush, QPen, QFont
+from PyQt5.QtGui import QBrush, QPen, QFont, QColor, QPixmap
 from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QGraphicsEllipseItem, QGraphicsTextItem
 
 from FamilyTree import *
 
 np.set_printoptions(threshold=sys.maxsize)
+
 
 def str_to_matrix(string):
     result = []
@@ -28,17 +30,40 @@ def get_coord(point):
 
 
 class Node(QGraphicsEllipseItem):
-    def __init__(self, x, y, w, h, text, parent, disp, c):
-        super().__init__(x, y, w / c, h / c)
-        self.font = QFont("Times", 20, QFont.Bold)
+    def __init__(self, x, y, w, h, text, parent, disp, node_id):
+        super().__init__(x, y, w, h)
+        self.font = QFont("Times", 15, QFont.Bold)
         self.text = QGraphicsTextItem(text, parent=self)
         self.text.setFont(self.font)
         self.text.setPos(x, y)
         self.parent = parent
         self.disp = disp
-        self.c = c
+        self.size = w
+        self.node_id = node_id
 
     def mousePressEvent(self, event):
+        image = QPixmap('img/no_avatar.jpg')
+        if self.parent.family_tree[self.node_id]['type'] == 'person':
+            self.parent.Name_label.setText(self.parent.family_tree[self.node_id]['name'])
+            self.parent.Gender_label.setText('Мужчина'
+                                             if self.parent.family_tree[self.node_id]['gender'] == 'male'
+                                             else 'Женщина')
+            self.parent.Age_label.setText(self.parent.family_tree[self.node_id]['date'])
+            if os.path.isfile('img/' + str(self.node_id) + '.jpg'):
+                image = QPixmap('img/' + str(self.node_id) + '.jpg')
+
+        if self.parent.family_tree[self.node_id]['type'] == 'family':
+            self.parent.Name_label.setText("Имя")
+            self.parent.Age_label.setText("Возраст")
+            self.parent.Gender_label.setText("Пол")
+        image = image.scaledToWidth(269)
+        image = image.scaledToHeight(269)
+        self.parent.Img_label.setPixmap(image)
+
+        for node in self.parent.get_nodes():
+            node.setPen(QPen(Qt.black, 1))
+        self.setPen(QPen(Qt.black, 3))
+
         super(Node, self).mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
@@ -55,16 +80,16 @@ class Edge(QGraphicsLineItem):
         self.u = node2
         pos1 = node1.get_pos()
         pos2 = node2.get_pos()
-        super().__init__(pos1[0] + 20 / node1.c,
-                         pos1[1] + 20 / node1.c,
-                         pos2[0] + 20 / node2.c,
-                         pos2[1] + 20 / node2.c)
+        super().__init__(pos1[0] + node1.size / 2,
+                         pos1[1] + node1.size / 2,
+                         pos2[0] + node2.size / 2,
+                         pos2[1] + node2.size / 2)
 
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(800, 600)
+        MainWindow.resize(1100, 600)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.Draw_btn = QtWidgets.QPushButton(self.centralwidget)
@@ -83,9 +108,14 @@ class Ui_MainWindow(object):
         self.Shake_btn.setGeometry(QtCore.QRect(170, 540, 120, 50))
         self.Shake_btn.setObjectName("Shake_btn")
         self.Mode_list = QtWidgets.QComboBox(self.centralwidget)
-        self.Mode_list.setGeometry(QtCore.QRect(290, 540, 120, 50))
+        self.Mode_list.setGeometry(QtCore.QRect(290, 540, 60, 50))
         self.Mode_list.addItems(["Full", "Line", "Circle", "Grid", "Tree", "Star", "Wheel"])
         self.Mode_list.setObjectName("Mode_list")
+        self.K_spinBox = QtWidgets.QSpinBox(self.centralwidget)
+        self.K_spinBox.setGeometry(QtCore.QRect(350, 540, 60, 50))
+        self.K_spinBox.setObjectName("K_spinBox")
+        self.K_spinBox.setMinimum(1)
+        self.K_spinBox.setMaximum(10)
         self.Count_spinBox = QtWidgets.QSpinBox(self.centralwidget)
         self.Count_spinBox.setGeometry(QtCore.QRect(0, 540, 50, 50))
         self.Count_spinBox.setMinimum(2)
@@ -102,16 +132,64 @@ class Ui_MainWindow(object):
         self.Import_btn = QtWidgets.QPushButton(self.centralwidget)
         self.Import_btn.setGeometry(QtCore.QRect(580, 540, 120, 50))
         self.Import_btn.setObjectName("Import_btn")
-        self.Random_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.Random_btn.setGeometry(QtCore.QRect(700, 540, 90, 50))
-        self.Random_btn.setObjectName("Random_btn")
+        self.Json_line = QtWidgets.QLineEdit(self.centralwidget)
+        self.Json_line.setGeometry(QtCore.QRect(700, 540, 90, 50))
+        self.Json_line.setObjectName("Json_line")
+        self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
+        self.verticalLayoutWidget.setGeometry(QtCore.QRect(810, 290, 271, 251))
+        self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
+        self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.Name_label = QtWidgets.QLabel(self.verticalLayoutWidget)
+        font = QtGui.QFont()
+        font.setPointSize(24)
+        self.Name_label.setFont(font)
+        self.Name_label.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
+        self.Name_label.setLayoutDirection(QtCore.Qt.LeftToRight)
+        self.Name_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.Name_label.setObjectName("Name_label")
+        self.Name_label.setWordWrap(True)
+        self.verticalLayout.addWidget(self.Name_label)
+        self.Age_label = QtWidgets.QLabel(self.verticalLayoutWidget)
+        font = QtGui.QFont()
+        font.setPointSize(24)
+        self.Age_label.setFont(font)
+        self.Age_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.Age_label.setObjectName("Age_label")
+        self.Age_label.setWordWrap(True)
+        self.verticalLayout.addWidget(self.Age_label)
+        self.Gender_label = QtWidgets.QLabel(self.verticalLayoutWidget)
+        font = QtGui.QFont()
+        font.setPointSize(24)
+        self.Gender_label.setFont(font)
+        self.Gender_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.Gender_label.setObjectName("Gender_label")
+        self.Gender_label.setWordWrap(True)
+        self.verticalLayout.addWidget(self.Gender_label)
+        self.Img_label = QtWidgets.QLabel(self.centralwidget)
+        self.Img_label.setGeometry(QtCore.QRect(810, 0, 269, 269))
+        self.Img_label.setBaseSize(QtCore.QSize(0, 0))
+        font = QtGui.QFont()
+        font.setPointSize(36)
+        self.Img_label.setFont(font)
+        self.Img_label.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
+        self.Img_label.setLayoutDirection(QtCore.Qt.LeftToRight)
+        self.Img_label.setText("")
+        self.Img_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.Img_label.setObjectName("Img_label")
+        self.Image = QPixmap('img/no_avatar.jpg')
+        self.Image = self.Image.scaledToWidth(269)
+        self.Image = self.Image.scaledToHeight(269)
+        self.Img_label.setPixmap(self.Image)
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
         self.add_functions()
         self.matrix = np.ones((2, 2)).astype(int)
-        self.family_tree = {0: {'shortname': '0'}, 1: {'shortname': '1'}}
+        self.family_tree = {0: {'type': 'node', 'shortname': '0', 'gender': 'female'},
+                            1: {'type': 'node', 'shortname': '1', 'gender': 'female'}}
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -119,13 +197,16 @@ class Ui_MainWindow(object):
         self.Draw_btn.setText(_translate("MainWindow", "Draw"))
         self.Shake_btn.setText(_translate("MainWindow", "Move"))
         self.Import_btn.setText(_translate("MainWindow", "Import JSON"))
-        self.Random_btn.setText(_translate("MainWindow", "Random"))
+        self.Json_line.setText(_translate("MainWindow", "tree3_simple"))
+        self.Name_label.setText(_translate("MainWindow", "Имя"))
+        self.Age_label.setText(_translate("MainWindow", "Возраст"))
+        self.Gender_label.setText(_translate("MainWindow", "Пол"))
 
     def add_functions(self):
         self.Draw_btn.clicked.connect(lambda: self.draw_random_nodes())
         self.Shake_btn.clicked.connect(lambda: self.move_nodes(self.Speed_list.currentText()))
         self.Count_spinBox.valueChanged.connect(lambda: self.set_matrix())
-        self.Import_btn.clicked.connect(lambda: self.import_json('data/tree3_simple.json'))
+        self.Import_btn.clicked.connect(lambda: self.import_json('data/' + self.Json_line.text() + '.json'))
         self.Mode_list.currentTextChanged.connect(lambda: self.set_mode())
 
     def check_symmetric(self):
@@ -138,7 +219,7 @@ class Ui_MainWindow(object):
         self.matrix = self.get_matrix_mode(self.Mode_list.currentText())
         self.family_tree = {}
         for i in range(self.matrix.shape[0]):
-            self.family_tree.update({i: {'shortname': str(i)}})
+            self.family_tree.update({i: {'type': 'node', 'shortname': str(i), 'gender': 'female'}})
         print(self.family_tree)
 
     def get_nodes(self):
@@ -158,7 +239,7 @@ class Ui_MainWindow(object):
 
     def draw_edge(self, node1, node2):
         edge = Edge(node1, node2)
-        pen = QPen(Qt.blue)
+        pen = QPen(Qt.black)
         pen.setWidth(3)
         edge.setPen(pen)
         self.scene.addItem(edge)
@@ -174,22 +255,35 @@ class Ui_MainWindow(object):
                     self.draw_edge(nodes[i], nodes[j])
                     # print(nodes[i], nodes[j])
 
-    def draw_node(self, x, y, text):
-        node = Node(0, 0, 40, 40, text,
+    def draw_node(self, x, y, size, text, color, node_id):
+        node = Node(0, 0, size, size, text,
                     parent=self,
                     disp=np.array([0, 0]),
-                    c=1)
+                    node_id=node_id)
         node.setPos(x, y)
         node.setZValue(1)
-        node.setBrush(QBrush(Qt.red))
+        node.setBrush(QBrush(color))
         node.setFlag(QGraphicsItem.ItemIsMovable)
         self.scene.addItem(node)
 
     def draw_nodes(self, coord_array):
         self.scene.clear()
         count = 0
-        for coord in coord_array:
-            self.draw_node(coord[0], coord[1], self.family_tree[count]['shortname'])
+        # for coord in coord_array:
+        #     self.draw_node(coord[0], coord[1], self.family_tree[count]['shortname'])
+        #     count += 1
+        for node_id in self.family_tree:
+            size = 5
+            text = ''
+            color = QColor(0, 0, 0, 255)
+            if self.family_tree[node_id]['type'] != 'family':
+                size = 40
+                text = self.family_tree[node_id]['shortname']
+                if self.family_tree[node_id]['gender'] == 'female':
+                    color = QColor(255, 148, 217, 255)
+                else:
+                    color = QColor(148, 217, 255, 255)
+            self.draw_node(coord_array[count][0], coord_array[count][1], size, text, color, node_id)
             count += 1
         self.draw_edges()
 
@@ -210,24 +304,26 @@ class Ui_MainWindow(object):
             self.draw_nodes(np.array(coord_array))
 
     def import_json(self, file_name):
-        family_tree = FamilyTree(open_json(file_name))
-        df = family_tree.get_links_pair_families_df()
-        G = nx.from_pandas_edgelist(df, 'source_id', 'target_id')
-        for obj in family_tree.get_tree_family().values():
-            G.nodes[obj.get_data()['id']].update(obj.get_data())
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            self.Matrix_TextEdit.setText(str(nx.adjacency_matrix(G).toarray()))
-            self.matrix = nx.adjacency_matrix(G).toarray()
-        # self.Count_spinBox.setValue(len(G.nodes()))
-
+        if os.path.isfile(file_name):
+            family_tree = FamilyTree(open_json(file_name))
+            # df = family_tree.get_links_pair_families_df()
+            # G = nx.from_pandas_edgelist(df, 'source_id', 'target_id')
+            G = family_tree.get_networkx_graph()
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                self.Matrix_TextEdit.setText(str(nx.adjacency_matrix(G).toarray()))
+                self.matrix = nx.adjacency_matrix(G).toarray()
+            self.family_tree = dict(family_tree.get_networkx_graph().nodes(data=True))
+            # self.Count_spinBox.setValue(len(G.nodes()))
+        else:
+            self.Json_line.setText('No file')
 
     def f_a(self, x):
-        k = np.sqrt(self.width * self.height / len(self.get_nodes())) / 4
+        k = np.sqrt(self.width * self.height / len(self.get_nodes())) / int(self.K_spinBox.value())
         return x ** 2 / k
 
     def f_r(self, x):
-        k = np.sqrt(self.width * self.height / len(self.get_nodes())) / 4
+        k = np.sqrt(self.width * self.height / len(self.get_nodes())) / int(self.K_spinBox.value())
         return k ** 2 / x
 
     def one_step(self, vel):
@@ -266,7 +362,7 @@ class Ui_MainWindow(object):
             # QtTest.QTest.qWait(1)
             self.one_step(vel)
             self.draw_edges()
-            vel *= 0.97
+            vel *= 0.975
             print(vel)
 
     def set_mode(self):
@@ -324,7 +420,6 @@ class Ui_MainWindow(object):
 
             G = nx.Graph(edges)
             return nx.adjacency_matrix(G).toarray()
-
 
 
 if __name__ == "__main__":

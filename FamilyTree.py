@@ -31,6 +31,10 @@ class Person:
         else:
             self.fid = -1
         self.cids = []
+        if 'date' in dictionary.keys():
+            self.date = dictionary['date']
+        else:
+            self.date = "-"
         self.rank = -1
 
     def __repr__(self):
@@ -48,7 +52,8 @@ class Person:
                 'name': self.name,
                 'shortname': self.shortname,
                 'gender': self.gender,
-                'rank': self.rank}
+                'rank': self.rank,
+                'date': self.date}
         return data
 
 
@@ -72,7 +77,7 @@ class Family:
 
     def get_data(self):
         data = {'id': self.id,
-                'type': 'person',
+                'type': 'family',
                 'sid1': self.sid1,
                 'sid2': self.sid2,
                 'cids': self.cids}
@@ -199,23 +204,16 @@ class FamilyTree:
         tree_family.update(self.families)
         return tree_family
 
+    def get_networkx_graph(self):
+        df = self.get_links_pair_families_df()
+        G = nx.from_pandas_edgelist(df, 'source_id', 'target_id')
+        for obj in self.get_tree_family().values():
+            G.nodes[obj.get_data()['id']].update(obj.get_data())
+        return G
 
-family_tree = FamilyTree(open_json('data/tree3_simple.json'))
-df = family_tree.get_links_pair_families_df()
-# print(df)
-# print(family_tree.get_tree_family().values())
 
-# for person in family_tree.get_tree_family().values():
-#     print(person.get_data())
-
-G = nx.from_pandas_edgelist(df, 'source_id', 'target_id')
-
-# for node in G.nodes():
-#     print(node)
-#     print(family_tree.get_tree_family()[node].get_data())
-#     # nx.set_node_attributes(G, node, family_tree.get_tree_family()[node].get_data())
-
-for obj in family_tree.get_tree_family().values():
-    G.nodes[obj.get_data()['id']].update(obj.get_data())
-
-print(dict(G.nodes(data=True)))
+# family_tree = FamilyTree(open_json('data/tree3_simple.json'))
+# d = dict(family_tree.get_networkx_graph().nodes(data=True))
+# print(d)
+# print(list(d)[0])
+# print(nx.adjacency_matrix(family_tree.get_networkx_graph()).toarray())
