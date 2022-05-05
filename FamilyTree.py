@@ -81,11 +81,13 @@ class Person:
 
 
 class Family:
-    def __init__(self, id, sid1, sid2, cids):
+    def __init__(self, id, sid1, sid2, cids, x=-1, y=-1):
         self.id = id
         self.sid1 = sid1
         self.sid2 = sid2
         self.cids = cids
+        self.x = x
+        self.y = y
 
     def __repr__(self):
         result = str(self.id) + ', ' + str(self.sid1) + ', ' + str(self.sid2) + ', ' + str(self.cids)
@@ -103,7 +105,13 @@ class Family:
                 'type': 'family',
                 'sid1': self.sid1,
                 'sid2': self.sid2,
-                'cids': self.cids}
+                'cids': self.cids,
+                'x': self.x,
+                'y': self.y}
+        if data['x'] == -1:
+            data.pop('x')
+        if data['y'] == -1:
+            data.pop('y')
         return data
 
 
@@ -119,9 +127,9 @@ class FamilyTree:
                             person = Person(node)
                             self.tree.update({person.id: person})
                         else:
-                            family = Family(node.id, node.sid1, node.sid2, node.cids)
+                            family = Family(node['id'], node['sid1'], node['sid2'], node['cids'], node['x'], node['y'])
                             self.tree.update({family.id: family})
-                            self.families.update()
+                            self.families.update({family.id: family})
                     else:
                         person = Person(node)
                         self.tree.update({person.id: person})
@@ -129,9 +137,11 @@ class FamilyTree:
                     print("List must contains dict!")
         else:
             print("Tree must be list!")
-        self.__add_children()
-        self.__add_rank()
-        self.__add_families()
+
+        if 'x' not in tree_list[0].keys():
+            self.__add_children()
+            self.__add_rank()
+            self.__add_families()
 
     def __add_children(self):
         result = self.tree

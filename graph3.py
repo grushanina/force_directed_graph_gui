@@ -91,6 +91,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1100, 600)
+        self._zoom = 0
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.Draw_btn = QtWidgets.QPushButton(self.centralwidget)
@@ -215,6 +216,9 @@ class Ui_MainWindow(object):
         self.Mode_list.currentTextChanged.connect(lambda: self.set_mode())
         self.Export_btn.clicked.connect(lambda: self.export_json())
 
+    def wheelEvent(self, event):
+        print('wheeeel')
+
     def check_symmetric(self):
         # matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
         return np.allclose(self.matrix, self.matrix.T)
@@ -291,6 +295,7 @@ class Ui_MainWindow(object):
                     color = QColor(255, 148, 217, 255)
                 else:
                     color = QColor(148, 217, 255, 255)
+            if self.family_tree[node_id]['type'] != 'node':
                 if 'x' in self.family_tree[node_id].keys():
                     x = self.family_tree[node_id]['x']
                 if 'y' in self.family_tree[node_id].keys():
@@ -326,6 +331,7 @@ class Ui_MainWindow(object):
                 self.Matrix_TextEdit.setText(str(nx.adjacency_matrix(G).toarray()))
                 self.matrix = nx.adjacency_matrix(G).toarray()
             self.family_tree = dict(family_tree.get_networkx_graph().nodes(data=True))
+            print(self.family_tree)
         else:
             self.Json_line.setText('No file')
 
@@ -440,13 +446,12 @@ class Ui_MainWindow(object):
             tree[node.node_id].update({'y': node.pos().y()})
 
         for node_id in tree:
-            if tree[node_id]['type'] != 'family':
-                result.append(tree[node_id])
+            result.append(tree[node_id])
 
         with open("data/sample.json", "w") as outfile:
             json.dump(result, outfile)
         with open("data/sample.json", "r") as outfile:
-            out = outfile.read().replace('},', '},\n')
+            out = outfile.read().replace('[{', '[\n {').replace('}]', '}\n]').replace('},', '},\n')
         with open("data/sample.json", "w") as outfile:
             outfile.write(out)
 
