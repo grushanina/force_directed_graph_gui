@@ -1,3 +1,4 @@
+import fileinput
 import math
 import random
 import sys
@@ -130,10 +131,13 @@ class Ui_MainWindow(object):
         self.Matrix_TextEdit.setObjectName("Matrix_TextEdit")
         self.Matrix_TextEdit.setText("[[1 1]\n [1 1]]")
         self.Import_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.Import_btn.setGeometry(QtCore.QRect(580, 540, 120, 50))
+        self.Import_btn.setGeometry(QtCore.QRect(580, 540, 65, 50))
         self.Import_btn.setObjectName("Import_btn")
+        self.Export_btn = QtWidgets.QPushButton(self.centralwidget)
+        self.Export_btn.setGeometry(QtCore.QRect(645, 540, 65, 50))
+        self.Export_btn.setObjectName("Export_btn")
         self.Json_line = QtWidgets.QLineEdit(self.centralwidget)
-        self.Json_line.setGeometry(QtCore.QRect(700, 540, 90, 50))
+        self.Json_line.setGeometry(QtCore.QRect(710, 540, 90, 50))
         self.Json_line.setObjectName("Json_line")
         self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
         self.verticalLayoutWidget.setGeometry(QtCore.QRect(810, 290, 271, 251))
@@ -196,7 +200,8 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.Draw_btn.setText(_translate("MainWindow", "Draw"))
         self.Shake_btn.setText(_translate("MainWindow", "Move"))
-        self.Import_btn.setText(_translate("MainWindow", "Import JSON"))
+        self.Import_btn.setText(_translate("MainWindow", "Import"))
+        self.Export_btn.setText(_translate("MainWindow", "Export"))
         self.Json_line.setText(_translate("MainWindow", "tree3_simple"))
         self.Name_label.setText(_translate("MainWindow", "Имя"))
         self.Age_label.setText(_translate("MainWindow", "Возраст"))
@@ -208,6 +213,7 @@ class Ui_MainWindow(object):
         self.Count_spinBox.valueChanged.connect(lambda: self.set_matrix())
         self.Import_btn.clicked.connect(lambda: self.import_json('data/' + self.Json_line.text() + '.json'))
         self.Mode_list.currentTextChanged.connect(lambda: self.set_mode())
+        self.Export_btn.clicked.connect(lambda: self.export_json())
 
     def check_symmetric(self):
         # matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
@@ -276,6 +282,8 @@ class Ui_MainWindow(object):
             size = 5
             text = ''
             color = QColor(0, 0, 0, 255)
+            x = coord_array[count][0]
+            y = coord_array[count][1]
             if self.family_tree[node_id]['type'] != 'family':
                 size = 40
                 text = self.family_tree[node_id]['shortname']
@@ -283,7 +291,11 @@ class Ui_MainWindow(object):
                     color = QColor(255, 148, 217, 255)
                 else:
                     color = QColor(148, 217, 255, 255)
-            self.draw_node(coord_array[count][0], coord_array[count][1], size, text, color, node_id)
+                if 'x' in self.family_tree[node_id].keys():
+                    x = self.family_tree[node_id]['x']
+                if 'y' in self.family_tree[node_id].keys():
+                    y = self.family_tree[node_id]['y']
+            self.draw_node(x, y, size, text, color, node_id)
             count += 1
         self.draw_edges()
 
@@ -314,7 +326,6 @@ class Ui_MainWindow(object):
                 self.Matrix_TextEdit.setText(str(nx.adjacency_matrix(G).toarray()))
                 self.matrix = nx.adjacency_matrix(G).toarray()
             self.family_tree = dict(family_tree.get_networkx_graph().nodes(data=True))
-            # self.Count_spinBox.setValue(len(G.nodes()))
         else:
             self.Json_line.setText('No file')
 
@@ -421,6 +432,23 @@ class Ui_MainWindow(object):
             G = nx.Graph(edges)
             return nx.adjacency_matrix(G).toarray()
 
+    def export_json(self):
+        result = []
+        tree = self.family_tree
+        for node in self.get_nodes():
+            tree[node.node_id].update({'x': node.pos().x()})
+            tree[node.node_id].update({'y': node.pos().y()})
+
+        for node_id in tree:
+            if tree[node_id]['type'] != 'family':
+                result.append(tree[node_id])
+
+        with open("data/sample.json", "w") as outfile:
+            json.dump(result, outfile)
+        with open("data/sample.json", "r") as outfile:
+            out = outfile.read().replace('},', '},\n')
+        with open("data/sample.json", "w") as outfile:
+            outfile.write(out)
 
 if __name__ == "__main__":
     import sys

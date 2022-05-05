@@ -35,6 +35,14 @@ class Person:
             self.date = dictionary['date']
         else:
             self.date = "-"
+        if 'x' in dictionary.keys():
+            self.x = dictionary['x']
+        else:
+            self.x = -1
+        if 'y' in dictionary.keys():
+            self.y = dictionary['y']
+        else:
+            self.y = -1
         self.rank = -1
 
     def __repr__(self):
@@ -48,12 +56,27 @@ class Person:
 
     def get_data(self):
         data = {'id': self.id,
-                'type': 'person',
+                'pids': self.pids,
+                'mid': self.mid,
+                'fid': self.fid,
                 'name': self.name,
-                'shortname': self.shortname,
                 'gender': self.gender,
+                'shortname': self.shortname,
+                'date': self.date,
                 'rank': self.rank,
-                'date': self.date}
+                'type': 'person',
+                'x': self.x,
+                'y': self.y}
+        if not data['pids']:
+            data.pop('pids')
+        if data['mid'] == -1:
+            data.pop('mid')
+        if data['fid'] == -1:
+            data.pop('fid')
+        if data['x'] == -1:
+            data.pop('x')
+        if data['y'] == -1:
+            data.pop('y')
         return data
 
 
@@ -87,18 +110,27 @@ class Family:
 class FamilyTree:
     def __init__(self, tree_list):
         self.tree = {}
+        self.families = {}
         if type(tree_list) is list:
             for node in tree_list:
                 if type(node) is dict:
-                    person = Person(node)
-                    self.tree.update({person.id: person})
+                    if 'x' in tree_list[0].keys():
+                        if node['type'] == 'person':
+                            person = Person(node)
+                            self.tree.update({person.id: person})
+                        else:
+                            family = Family(node.id, node.sid1, node.sid2, node.cids)
+                            self.tree.update({family.id: family})
+                            self.families.update()
+                    else:
+                        person = Person(node)
+                        self.tree.update({person.id: person})
                 else:
                     print("List must contains dict!")
         else:
             print("Tree must be list!")
         self.__add_children()
         self.__add_rank()
-        self.families = {}
         self.__add_families()
 
     def __add_children(self):
@@ -181,6 +213,7 @@ class FamilyTree:
         return df
 
     def get_links_pair_families_df(self):
+        #до делать
         df_dict = {'source_id': [], 'target_id': [], 'color': []}
 
         for family in self.families.values():
