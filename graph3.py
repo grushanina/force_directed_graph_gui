@@ -91,7 +91,6 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1100, 600)
-        self._zoom = 0
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.Draw_btn = QtWidgets.QPushButton(self.centralwidget)
@@ -215,9 +214,6 @@ class Ui_MainWindow(object):
         self.Import_btn.clicked.connect(lambda: self.import_json('data/' + self.Json_line.text() + '.json'))
         self.Mode_list.currentTextChanged.connect(lambda: self.set_mode())
         self.Export_btn.clicked.connect(lambda: self.export_json())
-
-    def wheelEvent(self, event):
-        print('wheeeel')
 
     def check_symmetric(self):
         # matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
