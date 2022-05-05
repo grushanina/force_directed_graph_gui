@@ -70,6 +70,8 @@ class Node(QGraphicsEllipseItem):
     def mouseReleaseEvent(self, event):
         super(Node, self).mouseReleaseEvent(event)
         self.parent.draw_edges()
+        print(self.x())
+        print(self.y())
 
     def get_pos(self):
         return np.array([self.x(), self.y()])
@@ -86,6 +88,29 @@ class Edge(QGraphicsLineItem):
                          pos2[0] + node2.size / 2,
                          pos2[1] + node2.size / 2)
 
+class Graph_view(QtWidgets.QGraphicsView):
+    def __init__(self, parent, main):
+        super(Graph_view, self).__init__(parent)
+        self._zoom = 0
+        self.main = main
+
+    def wheelEvent(self, event):
+        print(self.main.width)
+        print(self.main.height)
+
+        if event.angleDelta().y() > 0:
+            factor = 1.25
+            self._zoom += 1
+        else:
+            factor = 0.8
+            self._zoom -= 1
+        if self._zoom > 0:
+            self.scale(factor, factor)
+        else:
+            self.scale(factor, factor)
+
+        self.main.width = self.main.width / factor
+        self.main.height = self.main.height / factor
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -96,10 +121,12 @@ class Ui_MainWindow(object):
         self.Draw_btn = QtWidgets.QPushButton(self.centralwidget)
         self.Draw_btn.setGeometry(QtCore.QRect(50, 540, 120, 50))
         self.Draw_btn.setObjectName("Draw_btn")
-        self.graphicsView = QtWidgets.QGraphicsView(self.centralwidget)
+        self.graphicsView = Graph_view(self.centralwidget, self)
         self.graphicsView.setGeometry(QtCore.QRect(0, 0, 800, 540))
         self.graphicsView.setSceneRect(QtCore.QRectF(0.0, 0.0, 798.0, 538.0))
         self.graphicsView.setObjectName("graphicsView")
+        self.width_base = 798.0
+        self.height_base = 538.0
         self.width = 798.0
         self.height = 538.0
         self.graphicsView.setSceneRect(QtCore.QRectF(0.0, 0.0, self.width, self.height))
@@ -309,10 +336,15 @@ class Ui_MainWindow(object):
             self.Matrix_TextEdit.setText(self.Matrix_TextEdit.toPlainText())
 
             coord_array = []
-            # matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
+            left = -(self.width - 50 - self.width_base)/2
+            right = self.width - 50 + (self.width_base - self.width)/2
+            top = -(self.height - 50 - self.height_base)/2
+            bottom = self.height - 50 + (self.height_base - self.height)/2
             for i in range(self.matrix.shape[0]):
-                x = random.randint(0, int(self.width - 50))
-                y = random.randint(0, int(self.height - 50))
+                # x = random.randint(0, int(self.width - 50))
+                # y = random.randint(0, int(self.height - 50))
+                x = random.randint(int(left), int(right))
+                y = random.randint(int(top), int(bottom))
                 coord_array.append([x, y])
             self.draw_nodes(np.array(coord_array))
 
@@ -361,8 +393,12 @@ class Ui_MainWindow(object):
             # вычисляем новые координаты
             new_pos = v.get_pos() + (v.disp / np.linalg.norm(v.disp)) * vel
             # огранение выхода узла за рамки
-            new_pos[0] = min((self.width - 50), max(0, new_pos[0]))
-            new_pos[1] = min((self.height - 50), max(0, new_pos[1]))
+            left = -(self.width - 50 - self.width_base) / 2
+            right = self.width - 50 + (self.width_base - self.width) / 2
+            top = -(self.height - 50 - self.height_base) / 2
+            bottom = self.height - 50 + (self.height_base - self.height) / 2
+            new_pos[0] = min(right, max(left, new_pos[0]))
+            new_pos[1] = min(bottom, max(top, new_pos[1]))
             # перемещаем
             v.setPos(new_pos[0], new_pos[1])
 
