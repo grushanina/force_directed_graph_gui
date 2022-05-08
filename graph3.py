@@ -8,8 +8,8 @@ import os.path
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5 import QtTest
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QBrush, QPen, QFont, QColor, QPixmap
+from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtGui import QBrush, QPen, QFont, QColor, QPixmap, QPolygon, QPainter
 from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QGraphicsEllipseItem, QGraphicsTextItem
 
 from FamilyTree import *
@@ -115,59 +115,59 @@ class Graph_view(QtWidgets.QGraphicsView):
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1100, 600)
+        MainWindow.resize(1500, 800)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.Draw_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.Draw_btn.setGeometry(QtCore.QRect(50, 540, 120, 50))
+        self.Draw_btn.setGeometry(QtCore.QRect(50, 740, 120, 50))
         self.Draw_btn.setObjectName("Draw_btn")
         self.graphicsView = Graph_view(self.centralwidget, self)
-        self.graphicsView.setGeometry(QtCore.QRect(0, 0, 800, 540))
-        self.graphicsView.setSceneRect(QtCore.QRectF(0.0, 0.0, 798.0, 538.0))
+        self.graphicsView.setGeometry(QtCore.QRect(0, 0, 1200, 740))
+        self.graphicsView.setSceneRect(QtCore.QRectF(0.0, 0.0, 1198.0, 738.0))
         self.graphicsView.setObjectName("graphicsView")
-        self.width_base = 798.0
-        self.height_base = 538.0
-        self.width = 798.0
-        self.height = 538.0
+        self.width_base = 1198.0
+        self.height_base = 738.0
+        self.width = 1198.0
+        self.height = 738.0
         self.graphicsView.setSceneRect(QtCore.QRectF(0.0, 0.0, self.width, self.height))
         self.scene = QGraphicsScene()
         self.graphicsView.setScene(self.scene)
         self.Shake_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.Shake_btn.setGeometry(QtCore.QRect(170, 540, 120, 50))
+        self.Shake_btn.setGeometry(QtCore.QRect(170, 740, 120, 50))
         self.Shake_btn.setObjectName("Shake_btn")
         self.Mode_list = QtWidgets.QComboBox(self.centralwidget)
-        self.Mode_list.setGeometry(QtCore.QRect(290, 540, 60, 50))
+        self.Mode_list.setGeometry(QtCore.QRect(290, 740, 60, 50))
         self.Mode_list.addItems(["Full", "Line", "Circle", "Grid", "Tree", "Star", "Wheel"])
         self.Mode_list.setObjectName("Mode_list")
         self.K_spinBox = QtWidgets.QSpinBox(self.centralwidget)
-        self.K_spinBox.setGeometry(QtCore.QRect(350, 540, 60, 50))
+        self.K_spinBox.setGeometry(QtCore.QRect(350, 740, 60, 50))
         self.K_spinBox.setObjectName("K_spinBox")
         self.K_spinBox.setMinimum(1)
-        self.K_spinBox.setMaximum(10)
+        self.K_spinBox.setMaximum(20)
         self.Count_spinBox = QtWidgets.QSpinBox(self.centralwidget)
-        self.Count_spinBox.setGeometry(QtCore.QRect(0, 540, 50, 50))
+        self.Count_spinBox.setGeometry(QtCore.QRect(0, 740, 50, 50))
         self.Count_spinBox.setMinimum(2)
         self.Count_spinBox.setMaximum(50)
         self.Count_spinBox.setObjectName("Count_spinBox")
         self.Speed_list = QtWidgets.QComboBox(self.centralwidget)
-        self.Speed_list.setGeometry(QtCore.QRect(410, 540, 50, 50))
+        self.Speed_list.setGeometry(QtCore.QRect(410, 740, 50, 50))
         self.Speed_list.addItems(["10", "100", "1000", "inf", "1"])
         self.Speed_list.setObjectName("Speed_list")
         self.Matrix_TextEdit = QtWidgets.QTextEdit(self.centralwidget)
-        self.Matrix_TextEdit.setGeometry(QtCore.QRect(460, 540, 120, 50))
+        self.Matrix_TextEdit.setGeometry(QtCore.QRect(460, 740, 120, 50))
         self.Matrix_TextEdit.setObjectName("Matrix_TextEdit")
         self.Matrix_TextEdit.setText("[[1 1]\n [1 1]]")
         self.Import_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.Import_btn.setGeometry(QtCore.QRect(580, 540, 65, 50))
+        self.Import_btn.setGeometry(QtCore.QRect(580, 740, 65, 50))
         self.Import_btn.setObjectName("Import_btn")
         self.Export_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.Export_btn.setGeometry(QtCore.QRect(645, 540, 65, 50))
+        self.Export_btn.setGeometry(QtCore.QRect(645, 740, 65, 50))
         self.Export_btn.setObjectName("Export_btn")
         self.Json_line = QtWidgets.QLineEdit(self.centralwidget)
-        self.Json_line.setGeometry(QtCore.QRect(710, 540, 90, 50))
+        self.Json_line.setGeometry(QtCore.QRect(710, 740, 90, 50))
         self.Json_line.setObjectName("Json_line")
         self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
-        self.verticalLayoutWidget.setGeometry(QtCore.QRect(810, 290, 271, 251))
+        self.verticalLayoutWidget.setGeometry(QtCore.QRect(1210, 290, 271, 251))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -199,7 +199,7 @@ class Ui_MainWindow(object):
         self.Gender_label.setWordWrap(True)
         self.verticalLayout.addWidget(self.Gender_label)
         self.Img_label = QtWidgets.QLabel(self.centralwidget)
-        self.Img_label.setGeometry(QtCore.QRect(810, 0, 269, 269))
+        self.Img_label.setGeometry(QtCore.QRect(1210, 0, 269, 269))
         self.Img_label.setBaseSize(QtCore.QSize(0, 0))
         font = QtGui.QFont()
         font.setPointSize(36)
@@ -336,10 +336,10 @@ class Ui_MainWindow(object):
             self.Matrix_TextEdit.setText(self.Matrix_TextEdit.toPlainText())
 
             coord_array = []
-            left = -(self.width - 50 - self.width_base)/2
-            right = self.width - 50 + (self.width_base - self.width)/2
-            top = -(self.height - 50 - self.height_base)/2
-            bottom = self.height - 50 + (self.height_base - self.height)/2
+            left = -(self.width - self.width_base)/2
+            right = self.width + (self.width_base - self.width)/2 - 40
+            top = -(self.height - self.height_base)/2
+            bottom = self.height + (self.height_base - self.height)/2 - 40
             for i in range(self.matrix.shape[0]):
                 # x = random.randint(0, int(self.width - 50))
                 # y = random.randint(0, int(self.height - 50))
@@ -393,10 +393,10 @@ class Ui_MainWindow(object):
             # вычисляем новые координаты
             new_pos = v.get_pos() + (v.disp / np.linalg.norm(v.disp)) * vel
             # огранение выхода узла за рамки
-            left = -(self.width - 50 - self.width_base) / 2
-            right = self.width - 50 + (self.width_base - self.width) / 2
-            top = -(self.height - 50 - self.height_base) / 2
-            bottom = self.height - 50 + (self.height_base - self.height) / 2
+            left = -(self.width - self.width_base) / 2
+            right = self.width + (self.width_base - self.width) / 2 - 40
+            top = -(self.height - self.height_base) / 2
+            bottom = self.height + (self.height_base - self.height) / 2 - 40
             new_pos[0] = min(right, max(left, new_pos[0]))
             new_pos[1] = min(bottom, max(top, new_pos[1]))
             # перемещаем
