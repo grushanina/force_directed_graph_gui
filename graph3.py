@@ -1,15 +1,15 @@
-import fileinput
 import math
+import os.path
 import random
 import sys
+import time
 import warnings
-import os.path
 
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5 import QtTest
-from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtGui import QBrush, QPen, QFont, QColor, QPixmap, QPolygon, QPainter
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QBrush, QPen, QFont, QColor, QPixmap, QPainter, QImage
 from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QGraphicsEllipseItem, QGraphicsTextItem, \
     QGraphicsRectItem, QSizePolicy, QLayout
 
@@ -80,9 +80,6 @@ class NodeFemale(QGraphicsEllipseItem):
                     node.setBrush(QBrush(QColor(240, 21, 111, 255)))
                 elif node.node_id in self.parent.family_tree[self.node_id]['cids']:
                     node.setBrush(QBrush(QColor(77, 240, 184, 255)))
-                # elif node.node_id == self.parent.family_tree[self.node_id]['mid'] or\
-                #         node.node_id == self.parent.family_tree[self.node_id]['fid']:
-                #     node.setBrush(QBrush(QColor(64, 117, 240, 255)))
                 else:
                     node.setBrush(QBrush(Qt.gray))
 
@@ -187,6 +184,7 @@ class Edge(QGraphicsLineItem):
                          pos2[0] + node2.size / 2,
                          pos2[1] + node2.size / 2)
 
+
 class Graph_view(QtWidgets.QGraphicsView):
     def __init__(self, parent, main):
         super(Graph_view, self).__init__(parent)
@@ -210,6 +208,12 @@ class Graph_view(QtWidgets.QGraphicsView):
 
         self.main.width = self.main.width / factor
         self.main.height = self.main.height / factor
+
+
+class Legend(QGraphicsRectItem):
+    def __init__(self, x, y, w, h):
+        super().__init__(x, y, w, h)
+
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -265,6 +269,12 @@ class Ui_MainWindow(object):
         self.Json_line = QtWidgets.QLineEdit(self.centralwidget)
         self.Json_line.setGeometry(QtCore.QRect(710, 740, 90, 50))
         self.Json_line.setObjectName("Json_line")
+        self.Save_btn = QtWidgets.QPushButton(self.centralwidget)
+        self.Save_btn.setGeometry(QtCore.QRect(800, 740, 65, 50))
+        self.Save_btn.setObjectName("Save_btn")
+        self.Legend_btn = QtWidgets.QPushButton(self.centralwidget)
+        self.Legend_btn.setGeometry(QtCore.QRect(865, 740, 65, 50))
+        self.Legend_btn.setObjectName("Legend_btn")
         self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
         self.verticalLayoutWidget.setGeometry(QtCore.QRect(1210, 290, 271, 251))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
@@ -322,6 +332,7 @@ class Ui_MainWindow(object):
         self.matrix = np.ones((2, 2)).astype(int)
         self.family_tree = {0: {'type': 'node', 'shortname': '0', 'gender': 'female'},
                             1: {'type': 'node', 'shortname': '1', 'gender': 'female'}}
+        self.legend_on = False
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -331,6 +342,8 @@ class Ui_MainWindow(object):
         self.Import_btn.setText(_translate("MainWindow", "Import"))
         self.Export_btn.setText(_translate("MainWindow", "Export"))
         self.Json_line.setText(_translate("MainWindow", "tree3_simple"))
+        self.Save_btn.setText(_translate("MainWindow", "Save"))
+        self.Legend_btn.setText(_translate("MainWindow", "Legend"))
         self.Name_label.setText(_translate("MainWindow", "Имя"))
         self.Age_label.setText(_translate("MainWindow", "Возраст"))
         self.Children_label.setText(_translate("MainWindow", "Дети"))
@@ -342,9 +355,10 @@ class Ui_MainWindow(object):
         self.Import_btn.clicked.connect(lambda: self.import_json('data/' + self.Json_line.text() + '.json'))
         self.Mode_list.currentTextChanged.connect(lambda: self.set_mode())
         self.Export_btn.clicked.connect(lambda: self.export_json())
+        self.Save_btn.clicked.connect(lambda: self.save_img())
+        self.Legend_btn.clicked.connect(lambda: self.show_legend())
 
     def check_symmetric(self):
-        # matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
         return np.allclose(self.matrix, self.matrix.T)
 
     def set_matrix(self):
@@ -379,7 +393,6 @@ class Ui_MainWindow(object):
         self.scene.addItem(edge)
 
     def draw_edges(self):
-        # matrix = str_to_matrix(self.Matrix_TextEdit.toPlainText())
         for edge in self.get_edges():
             self.scene.removeItem(edge)
         nodes = self.get_nodes()
@@ -387,7 +400,6 @@ class Ui_MainWindow(object):
             for j in range(i, len(nodes)):
                 if i != j and self.matrix[i][j] == 1:
                     self.draw_edge(nodes[i], nodes[j])
-                    # print(nodes[i], nodes[j])
 
     def draw_node(self, x, y, size, text, color, node_id, gender):
         if gender == 'female':
@@ -458,8 +470,6 @@ class Ui_MainWindow(object):
     def import_json(self, file_name):
         if os.path.isfile(file_name):
             family_tree = FamilyTree(open_json(file_name))
-            # df = family_tree.get_links_pair_families_df()
-            # G = nx.from_pandas_edgelist(df, 'source_id', 'target_id')
             G = family_tree.get_networkx_graph()
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
@@ -511,15 +521,15 @@ class Ui_MainWindow(object):
 
     def move_nodes(self, speed):
         vel = math.sqrt(self.width * self.height) * 0.1
+        start_time = time.time()
         while vel > 0.1:
             if speed.isdigit():
-                # QtTest.QTest.qWait(int(100 ** (1 / int(speed))))
                 QtTest.QTest.qWait(int(speed))
-            # QtTest.QTest.qWait(1)
             self.one_step(vel)
             self.draw_edges()
             vel *= 0.975
             print(vel)
+        print("--- %s seconds ---" % (time.time() - start_time))
 
     def set_mode(self):
         self.Matrix_TextEdit.setText(str(self.get_matrix_mode(self.Mode_list.currentText())))
@@ -593,6 +603,58 @@ class Ui_MainWindow(object):
             out = outfile.read().replace('[{', '[\n {').replace('}]', '}\n]').replace('},', '},\n')
         with open("data/sample.json", "w") as outfile:
             outfile.write(out)
+
+    def save_img(self):
+        area = self.scene.sceneRect()
+        image = QImage(area.width(), area.height(), QImage.Format_ARGB32_Premultiplied)
+        painter = QPainter(image)
+        self.scene.render(painter, QtCore.QRectF(image.rect()), area)
+        painter.end()
+        image.save("capture.png")
+        print('Image saved!')
+
+    def show_legend(self):
+        if not self.legend_on:
+            for item in self.scene.items():
+                if isinstance(item, Legend):
+                    item.setVisible(True)
+                    self.legend_on = True
+                    self.Legend_btn.setStyleSheet("background-color: DarkGrey")
+                    return
+
+            legend = Legend(0, 0, 100, 80)
+            legend.setPos(5, 5)
+            legend.setZValue(2)
+            legend.setPen(QPen(Qt.black, 1))
+            legend.setFlag(QGraphicsItem.ItemIsMovable)
+
+            parents_box = QGraphicsRectItem(5, 5, 20, 20, parent=legend)
+            parents_box.setBrush(QBrush(QColor(64, 117, 240, 255)))
+            parents_text = QGraphicsTextItem('- родители', parent=legend)
+            parents_text.setFont(QFont("Times", 8, QFont.Bold))
+            parents_text.setPos(30, 5)
+
+            spouses_box = QGraphicsRectItem(5, 30, 20, 20, parent=legend)
+            spouses_box.setBrush(QBrush(QColor(240, 21, 111, 255)))
+            parents_text = QGraphicsTextItem('- супруги', parent=legend)
+            parents_text.setFont(QFont("Times", 8, QFont.Bold))
+            parents_text.setPos(30, 30)
+
+            children_box = QGraphicsRectItem(5, 55, 20, 20, parent=legend)
+            children_box.setBrush(QBrush(QColor(77, 240, 184, 255)))
+            parents_text = QGraphicsTextItem('- дети', parent=legend)
+            parents_text.setFont(QFont("Times", 8, QFont.Bold))
+            parents_text.setPos(30, 55)
+
+            self.scene.addItem(legend)
+            self.legend_on = True
+            self.Legend_btn.setStyleSheet("background-color: DarkGrey")
+        else:
+            for item in self.scene.items():
+                if isinstance(item, Legend):
+                    item.setVisible(False)
+            self.legend_on = False
+            self.Legend_btn.setStyleSheet("background-color: light gray")
 
 
 if __name__ == "__main__":
