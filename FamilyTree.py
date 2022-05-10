@@ -63,12 +63,11 @@ class Person:
                 'gender': self.gender,
                 'shortname': self.shortname,
                 'date': self.date,
+                'cids': self.cids,
                 'rank': self.rank,
                 'type': 'person',
                 'x': self.x,
                 'y': self.y}
-        if not data['pids']:
-            data.pop('pids')
         if data['mid'] == -1:
             data.pop('mid')
         if data['fid'] == -1:
@@ -223,7 +222,6 @@ class FamilyTree:
         return df
 
     def get_links_pair_families_df(self):
-        #до делать
         df_dict = {'source_id': [], 'target_id': [], 'color': []}
 
         for family in self.families.values():

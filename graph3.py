@@ -10,7 +10,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5 import QtTest
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QBrush, QPen, QFont, QColor, QPixmap, QPolygon, QPainter
-from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QGraphicsEllipseItem, QGraphicsTextItem
+from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QGraphicsEllipseItem, QGraphicsTextItem, \
+    QGraphicsRectItem, QSizePolicy, QLayout
 
 from FamilyTree import *
 
@@ -30,7 +31,7 @@ def get_coord(point):
     return np.array([point.x(), point.y()])
 
 
-class Node(QGraphicsEllipseItem):
+class NodeFemale(QGraphicsEllipseItem):
     def __init__(self, x, y, w, h, text, parent, disp, node_id):
         super().__init__(x, y, w, h)
         self.font = QFont("Times", 15, QFont.Bold)
@@ -46,17 +47,19 @@ class Node(QGraphicsEllipseItem):
         image = QPixmap('img/no_avatar.jpg')
         if self.parent.family_tree[self.node_id]['type'] == 'person':
             self.parent.Name_label.setText(self.parent.family_tree[self.node_id]['name'])
-            self.parent.Gender_label.setText('Мужчина'
-                                             if self.parent.family_tree[self.node_id]['gender'] == 'male'
-                                             else 'Женщина')
             self.parent.Age_label.setText(self.parent.family_tree[self.node_id]['date'])
             if os.path.isfile('img/' + str(self.node_id) + '.jpg'):
                 image = QPixmap('img/' + str(self.node_id) + '.jpg')
+            children = 'Дети:\n'
+            for child_id in self.parent.family_tree[self.node_id]['cids']:
+                children += self.parent.family_tree[child_id]['name'] + '\n'
+            self.parent.Children_label.setText(children)
+            print(children)
 
         if self.parent.family_tree[self.node_id]['type'] == 'family':
             self.parent.Name_label.setText("Имя")
             self.parent.Age_label.setText("Возраст")
-            self.parent.Gender_label.setText("Пол")
+            self.parent.Children_label.setText("Дети")
         image = image.scaledToWidth(269)
         image = image.scaledToHeight(269)
         self.parent.Img_label.setPixmap(image)
@@ -65,10 +68,106 @@ class Node(QGraphicsEllipseItem):
             node.setPen(QPen(Qt.black, 1))
         self.setPen(QPen(Qt.black, 3))
 
-        super(Node, self).mousePressEvent(event)
+        for node in self.parent.get_nodes():
+            if self.parent.family_tree[self.node_id]['type'] == 'person':
+                if node.node_id == self.parent.family_tree[self.node_id]['id']:
+                    if self.parent.family_tree[self.node_id]['gender'] == 'female':
+                        color = QColor(255, 148, 217, 255)
+                    else:
+                        color = QColor(148, 217, 255, 255)
+                    node.setBrush(QBrush(color))
+                elif node.node_id in self.parent.family_tree[self.node_id]['pids']:
+                    node.setBrush(QBrush(QColor(240, 21, 111, 255)))
+                elif node.node_id in self.parent.family_tree[self.node_id]['cids']:
+                    node.setBrush(QBrush(QColor(77, 240, 184, 255)))
+                # elif node.node_id == self.parent.family_tree[self.node_id]['mid'] or\
+                #         node.node_id == self.parent.family_tree[self.node_id]['fid']:
+                #     node.setBrush(QBrush(QColor(64, 117, 240, 255)))
+                else:
+                    node.setBrush(QBrush(Qt.gray))
+
+                if 'mid' in self.parent.family_tree[self.node_id].keys():
+                    if node.node_id == self.parent.family_tree[self.node_id]['mid']:
+                        node.setBrush(QBrush(QColor(64, 117, 240, 255)))
+                if 'fid' in self.parent.family_tree[self.node_id].keys():
+                    if node.node_id == self.parent.family_tree[self.node_id]['fid']:
+                        node.setBrush(QBrush(QColor(64, 117, 240, 255)))
+
+        super(NodeFemale, self).mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
-        super(Node, self).mouseReleaseEvent(event)
+        super(NodeFemale, self).mouseReleaseEvent(event)
+        self.parent.draw_edges()
+        print(self.x())
+        print(self.y())
+
+    def get_pos(self):
+        return np.array([self.x(), self.y()])
+
+
+class NodeMale(QGraphicsRectItem):
+    def __init__(self, x, y, w, h, text, parent, disp, node_id):
+        super().__init__(x, y, w, h)
+        self.font = QFont("Times", 15, QFont.Bold)
+        self.text = QGraphicsTextItem(text, parent=self)
+        self.text.setFont(self.font)
+        self.text.setPos(x, y)
+        self.parent = parent
+        self.disp = disp
+        self.size = w
+        self.node_id = node_id
+
+    def mousePressEvent(self, event):
+        image = QPixmap('img/no_avatar.jpg')
+        if self.parent.family_tree[self.node_id]['type'] == 'person':
+            self.parent.Name_label.setText(self.parent.family_tree[self.node_id]['name'])
+            self.parent.Age_label.setText(self.parent.family_tree[self.node_id]['date'])
+            if os.path.isfile('img/' + str(self.node_id) + '.jpg'):
+                image = QPixmap('img/' + str(self.node_id) + '.jpg')
+            children = 'Дети:\n'
+            for child_id in self.parent.family_tree[self.node_id]['cids']:
+                children += self.parent.family_tree[child_id]['name'] + '\n'
+            self.parent.Children_label.setText(children)
+            print(children)
+
+        if self.parent.family_tree[self.node_id]['type'] == 'family':
+            self.parent.Name_label.setText("Имя")
+            self.parent.Age_label.setText("Возраст")
+            self.parent.Children_label.setText("Дети")
+        image = image.scaledToWidth(269)
+        image = image.scaledToHeight(269)
+        self.parent.Img_label.setPixmap(image)
+
+        for node in self.parent.get_nodes():
+            node.setPen(QPen(Qt.black, 1))
+        self.setPen(QPen(Qt.black, 3))
+
+        for node in self.parent.get_nodes():
+            if self.parent.family_tree[self.node_id]['type'] == 'person':
+                if node.node_id == self.parent.family_tree[self.node_id]['id']:
+                    if self.parent.family_tree[self.node_id]['gender'] == 'female':
+                        color = QColor(255, 148, 217, 255)
+                    else:
+                        color = QColor(148, 217, 255, 255)
+                    node.setBrush(QBrush(color))
+                elif node.node_id in self.parent.family_tree[self.node_id]['pids']:
+                    node.setBrush(QBrush(QColor(240, 21, 111, 255)))
+                elif node.node_id in self.parent.family_tree[self.node_id]['cids']:
+                    node.setBrush(QBrush(QColor(77, 240, 184, 255)))
+                else:
+                    node.setBrush(QBrush(Qt.gray))
+
+                if 'mid' in self.parent.family_tree[self.node_id].keys():
+                    if node.node_id == self.parent.family_tree[self.node_id]['mid']:
+                        node.setBrush(QBrush(QColor(64, 117, 240, 255)))
+                if 'fid' in self.parent.family_tree[self.node_id].keys():
+                    if node.node_id == self.parent.family_tree[self.node_id]['fid']:
+                        node.setBrush(QBrush(QColor(64, 117, 240, 255)))
+
+        super(NodeMale, self).mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        super(NodeMale, self).mouseReleaseEvent(event)
         self.parent.draw_edges()
         print(self.x())
         print(self.y())
@@ -172,6 +271,7 @@ class Ui_MainWindow(object):
         self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setObjectName("verticalLayout")
+        self.verticalLayout.setSizeConstraint(QLayout.SetMinimumSize)
         self.Name_label = QtWidgets.QLabel(self.verticalLayoutWidget)
         font = QtGui.QFont()
         font.setPointSize(24)
@@ -190,14 +290,15 @@ class Ui_MainWindow(object):
         self.Age_label.setObjectName("Age_label")
         self.Age_label.setWordWrap(True)
         self.verticalLayout.addWidget(self.Age_label)
-        self.Gender_label = QtWidgets.QLabel(self.verticalLayoutWidget)
+        self.Children_label = QtWidgets.QLabel(self.verticalLayoutWidget)
         font = QtGui.QFont()
-        font.setPointSize(24)
-        self.Gender_label.setFont(font)
-        self.Gender_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.Gender_label.setObjectName("Gender_label")
-        self.Gender_label.setWordWrap(True)
-        self.verticalLayout.addWidget(self.Gender_label)
+        font.setPointSize(20)
+        self.Children_label.setFont(font)
+        self.Children_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.Children_label.setObjectName("Children_label")
+        self.Children_label.setWordWrap(True)
+        self.Children_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        self.verticalLayout.addWidget(self.Children_label)
         self.Img_label = QtWidgets.QLabel(self.centralwidget)
         self.Img_label.setGeometry(QtCore.QRect(1210, 0, 269, 269))
         self.Img_label.setBaseSize(QtCore.QSize(0, 0))
@@ -232,7 +333,7 @@ class Ui_MainWindow(object):
         self.Json_line.setText(_translate("MainWindow", "tree3_simple"))
         self.Name_label.setText(_translate("MainWindow", "Имя"))
         self.Age_label.setText(_translate("MainWindow", "Возраст"))
-        self.Gender_label.setText(_translate("MainWindow", "Пол"))
+        self.Children_label.setText(_translate("MainWindow", "Дети"))
 
     def add_functions(self):
         self.Draw_btn.clicked.connect(lambda: self.draw_random_nodes())
@@ -256,7 +357,7 @@ class Ui_MainWindow(object):
         print(self.family_tree)
 
     def get_nodes(self):
-        nodes = [item for item in self.scene.items() if isinstance(item, Node)]
+        nodes = [item for item in self.scene.items() if isinstance(item, NodeFemale) or isinstance(item, NodeMale)]
         nodes.reverse()
         return nodes
 
@@ -288,11 +389,17 @@ class Ui_MainWindow(object):
                     self.draw_edge(nodes[i], nodes[j])
                     # print(nodes[i], nodes[j])
 
-    def draw_node(self, x, y, size, text, color, node_id):
-        node = Node(0, 0, size, size, text,
-                    parent=self,
-                    disp=np.array([0, 0]),
-                    node_id=node_id)
+    def draw_node(self, x, y, size, text, color, node_id, gender):
+        if gender == 'female':
+            node = NodeFemale(0, 0, size, size, text,
+                              parent=self,
+                              disp=np.array([0, 0]),
+                              node_id=node_id)
+        else:
+            node = NodeMale(0, 0, size, size, text,
+                            parent=self,
+                            disp=np.array([0, 0]),
+                            node_id=node_id)
         node.setPos(x, y)
         node.setZValue(1)
         node.setBrush(QBrush(color))
@@ -302,28 +409,28 @@ class Ui_MainWindow(object):
     def draw_nodes(self, coord_array):
         self.scene.clear()
         count = 0
-        # for coord in coord_array:
-        #     self.draw_node(coord[0], coord[1], self.family_tree[count]['shortname'])
-        #     count += 1
         for node_id in self.family_tree:
             size = 5
             text = ''
             color = QColor(0, 0, 0, 255)
             x = coord_array[count][0]
             y = coord_array[count][1]
+            gender = 'female'
             if self.family_tree[node_id]['type'] != 'family':
                 size = 40
                 text = self.family_tree[node_id]['shortname']
                 if self.family_tree[node_id]['gender'] == 'female':
                     color = QColor(255, 148, 217, 255)
+                    gender = 'female'
                 else:
                     color = QColor(148, 217, 255, 255)
+                    gender = 'male'
             if self.family_tree[node_id]['type'] != 'node':
                 if 'x' in self.family_tree[node_id].keys():
                     x = self.family_tree[node_id]['x']
                 if 'y' in self.family_tree[node_id].keys():
                     y = self.family_tree[node_id]['y']
-            self.draw_node(x, y, size, text, color, node_id)
+            self.draw_node(x, y, size, text, color, node_id, gender)
             count += 1
         self.draw_edges()
 
@@ -336,10 +443,10 @@ class Ui_MainWindow(object):
             self.Matrix_TextEdit.setText(self.Matrix_TextEdit.toPlainText())
 
             coord_array = []
-            left = -(self.width - self.width_base)/2
-            right = self.width + (self.width_base - self.width)/2 - 40
-            top = -(self.height - self.height_base)/2
-            bottom = self.height + (self.height_base - self.height)/2 - 40
+            left = -(self.width - self.width_base) / 2
+            right = self.width + (self.width_base - self.width) / 2 - 40
+            top = -(self.height - self.height_base) / 2
+            bottom = self.height + (self.height_base - self.height) / 2 - 40
             for i in range(self.matrix.shape[0]):
                 # x = random.randint(0, int(self.width - 50))
                 # y = random.randint(0, int(self.height - 50))
@@ -486,6 +593,7 @@ class Ui_MainWindow(object):
             out = outfile.read().replace('[{', '[\n {').replace('}]', '}\n]').replace('},', '},\n')
         with open("data/sample.json", "w") as outfile:
             outfile.write(out)
+
 
 if __name__ == "__main__":
     import sys
