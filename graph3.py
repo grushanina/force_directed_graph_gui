@@ -215,6 +215,10 @@ class Legend(QGraphicsRectItem):
         super().__init__(x, y, w, h)
 
 
+class TimeText(QGraphicsTextItem):
+    def __init__(self, text):
+        super().__init__(text)
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -275,6 +279,9 @@ class Ui_MainWindow(object):
         self.Legend_btn = QtWidgets.QPushButton(self.centralwidget)
         self.Legend_btn.setGeometry(QtCore.QRect(865, 740, 65, 50))
         self.Legend_btn.setObjectName("Legend_btn")
+        self.Time_btn = QtWidgets.QPushButton(self.centralwidget)
+        self.Time_btn.setGeometry(QtCore.QRect(930, 740, 65, 50))
+        self.Time_btn.setObjectName("Time_btn")
         self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
         self.verticalLayoutWidget.setGeometry(QtCore.QRect(1210, 290, 271, 251))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
@@ -333,6 +340,8 @@ class Ui_MainWindow(object):
         self.family_tree = {0: {'type': 'node', 'shortname': '0', 'gender': 'female'},
                             1: {'type': 'node', 'shortname': '1', 'gender': 'female'}}
         self.legend_on = False
+        self.time_on = False
+        self.result_time = 0
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -344,6 +353,7 @@ class Ui_MainWindow(object):
         self.Json_line.setText(_translate("MainWindow", "tree3_simple"))
         self.Save_btn.setText(_translate("MainWindow", "Save"))
         self.Legend_btn.setText(_translate("MainWindow", "Legend"))
+        self.Time_btn.setText(_translate("MainWindow", "Time"))
         self.Name_label.setText(_translate("MainWindow", "Имя"))
         self.Age_label.setText(_translate("MainWindow", "Возраст"))
         self.Children_label.setText(_translate("MainWindow", "Дети"))
@@ -357,6 +367,7 @@ class Ui_MainWindow(object):
         self.Export_btn.clicked.connect(lambda: self.export_json())
         self.Save_btn.clicked.connect(lambda: self.save_img())
         self.Legend_btn.clicked.connect(lambda: self.show_legend())
+        self.Time_btn.clicked.connect(lambda: self.show_time())
 
     def check_symmetric(self):
         return np.allclose(self.matrix, self.matrix.T)
@@ -529,7 +540,9 @@ class Ui_MainWindow(object):
             self.draw_edges()
             vel *= 0.975
             print(vel)
-        print("--- %s seconds ---" % (time.time() - start_time))
+        result_time = time.time() - start_time
+        print("--- %s seconds ---" % round(result_time, 4))
+        self.result_time = round(result_time, 4)
 
     def set_mode(self):
         self.Matrix_TextEdit.setText(str(self.get_matrix_mode(self.Mode_list.currentText())))
@@ -655,6 +668,31 @@ class Ui_MainWindow(object):
                     item.setVisible(False)
             self.legend_on = False
             self.Legend_btn.setStyleSheet("background-color: light gray")
+
+    def show_time(self):
+        if not self.time_on:
+            for item in self.scene.items():
+                if isinstance(item, TimeText):
+                    item.setVisible(True)
+                    self.time_on = True
+                    self.Time_btn.setStyleSheet("background-color: DarkGrey")
+                    item.setPlainText(str(self.result_time) + ' с.')
+                    return
+
+            time_text = TimeText(str(self.result_time) + ' с.')
+            time_text.setFont(QFont("Times", 8, QFont.Bold))
+            time_text.setPos(1100.0, 700.0)
+            time_text.setZValue(2)
+            time_text.setFlag(QGraphicsItem.ItemIsMovable)
+            self.scene.addItem(time_text)
+            self.time_on= True
+            self.Time_btn.setStyleSheet("background-color: DarkGrey")
+        else:
+            for item in self.scene.items():
+                if isinstance(item, TimeText):
+                    item.setVisible(False)
+            self.time_on = False
+            self.Time_btn.setStyleSheet("background-color: light gray")
 
 
 if __name__ == "__main__":
