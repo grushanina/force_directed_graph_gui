@@ -254,7 +254,7 @@ class Ui_MainWindow(object):
         self.Count_spinBox = QtWidgets.QSpinBox(self.centralwidget)
         self.Count_spinBox.setGeometry(QtCore.QRect(0, 740, 50, 50))
         self.Count_spinBox.setMinimum(2)
-        self.Count_spinBox.setMaximum(50)
+        self.Count_spinBox.setMaximum(100)
         self.Count_spinBox.setObjectName("Count_spinBox")
         self.Speed_list = QtWidgets.QComboBox(self.centralwidget)
         self.Speed_list.setGeometry(QtCore.QRect(410, 740, 50, 50))
